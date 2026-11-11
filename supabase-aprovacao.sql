@@ -92,4 +92,4 @@ grant execute on function public.analisar_solicitacao_professor(uuid,boolean) to
 
 -- Conta administrativa criada anteriormente. Execute apenas para conceder o papel de administradora:
 -- update public.profiles set role='admin'
--- where id=(select id from auth.users where lower(email)='vivianlauriano02@gmail.com');
+-- where id=(select id from auth.users where lower(email)='admin@example.com');
