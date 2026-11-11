@@ -16,8 +16,8 @@ Deno.serve(async req=>{
   const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const resend=Deno.env.get('RESEND_API_KEY');
   const from=Deno.env.get('RESEND_FROM_EMAIL');
-  const adminEmail=Deno.env.get('ADMIN_EMAIL')||'vivianlauriano02@gmail.com';
-  if(!resend||!from)return json(503,{error:'Envio de e-mails não configurado'});
+  const adminEmail=Deno.env.get('ADMIN_EMAIL');
+  if(!resend||!from||!adminEmail)return json(503,{error:'Envio de e-mails não configurado'});
   const bearer=req.headers.get('authorization')||'';
   if(!bearer.startsWith('Bearer '))return json(401,{error:'Não autenticado'});
   const client=createClient(url,anon,{global:{headers:{Authorization:bearer}}});
