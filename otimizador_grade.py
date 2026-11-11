@@ -85,6 +85,39 @@ def pode_cursar(disciplina, feitas, disciplinas_dict):
             return False
     return True
 
+def conflitos_de_periodo(disciplinas_dict):
+    conflitos = []
+    for disciplina, info in disciplinas_dict.items():
+        for requisito in info['requisitos']:
+            if (requisito in disciplinas_dict
+                    and disciplinas_dict[requisito]['periodo'] >= info['periodo']):
+                conflitos.append(
+                    f"{disciplina} está no período {info['periodo']} e depende de "
+                    f"{requisito}, previsto no período {disciplinas_dict[requisito]['periodo']}"
+                )
+    return conflitos
+
+def conflitos_da_selecao(marcadas, disciplinas_dict):
+    marcadas = set(marcadas)
+    conflitos = []
+    for disciplina in marcadas:
+        info = disciplinas_dict[disciplina]
+        creditos_anteriores = sum(
+            disciplinas_dict[n]['créditos'] for n in marcadas if n != disciplina
+        )
+        for requisito in info['requisitos']:
+            m = re.fullmatch(r'(\d+)\s+créditos acumulados', requisito)
+            if m:
+                if creditos_anteriores < int(m.group(1)):
+                    conflitos.append(
+                        f"{disciplina}: requisito mínimo de conclusão ainda não atendido"
+                    )
+            elif requisito not in marcadas:
+                conflitos.append(
+                    f"{disciplina}: {requisito} não está marcada como concluída"
+                )
+    return conflitos
+
 def tem_conflito(disciplina, horarios_ocupados, disciplinas_dict):
     return bool(disciplinas_dict[disciplina]['horarios'] & horarios_ocupados)
 
@@ -175,6 +208,13 @@ def ao_clicar(botao):
     with output:
         clear_output()
         ja_feitas = [cb.description for cb in checkboxes if cb.value]
+        conflitos = conflitos_da_selecao(ja_feitas, disciplinas)
+        if conflitos:
+            display(Markdown(
+                '⚠️ **Conflito de pré-requisito na seleção:**\n\n- '
+                + '\n- '.join(conflitos)
+                + '\n\nConfira as disciplinas marcadas como concluídas antes de gerar o plano.'
+            ))
         try:
             solucoes = alocar_disciplinas(
                 disciplinas, slider_periodos.value, ja_feitas,
@@ -182,7 +222,8 @@ def ao_clicar(botao):
                 max_disciplinas=slider_limite.value)
             if not solucoes:
                 display(Markdown('⚠️ Nenhuma solução completa encontrada. Aumente os períodos '
-                                 'ou o limite de disciplinas, ou desative os conflitos de horário.'))
+                                 'ou o limite de disciplinas, reveja os pré-requisitos marcados '
+                                 'ou desative os conflitos de horário.'))
                 return
             plano = solucoes[0]
             display(Markdown(f'### ✅ Grade encontrada em {len(plano)} períodos'))
@@ -198,10 +239,22 @@ def ao_clicar(botao):
             except ImportError:
                 pass
         except Exception as erro:
-            display(Markdown(f'⚠️ Erro: {erro}'))
+            texto = str(erro)
+            if 'pré-requisito' in texto.lower() or 'ciclo' in texto.lower():
+                display(Markdown(f'⚠️ **Conflito de pré-requisito:** {texto}'))
+            else:
+                display(Markdown(f'⚠️ Erro: {texto}'))
 
 botao_gerar.on_click(ao_clicar)
 display(Markdown('## 📘 Otimizador de Plano de Estudos — Matriz 2026'))
+conflitos_matriz = conflitos_de_periodo(disciplinas)
+if conflitos_matriz:
+    display(Markdown(
+        '⚠️ **Possível conflito de pré-requisito na matriz:**\n\n- '
+        + '\n- '.join(conflitos_matriz)
+        + '\n\nConfira com a coordenação se o requisito pode ser cursado no mesmo período '
+          'ou se a matriz precisa de ajuste.'
+    ))
 display(Markdown('### Marque as disciplinas já concluídas:'))
 display(widgets.VBox(grupos_periodos, layout=widgets.Layout(max_height='350px', overflow='auto')))
 display(slider_periodos, slider_limite, checkbox_horarios, botao_gerar, output)
