@@ -1,0 +1,36 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Acesso | Otimizador de Grade</title>
+<style>body{margin:0;background:#f2f6fc;color:#172d4d;font-family:system-ui,Arial,sans-serif}main{max-width:470px;margin:7vh auto;padding:18px}.card{background:white;border-radius:18px;padding:30px;box-shadow:0 8px 30px #142b5120}h1{font-size:26px;margin:0 0 8px}p{color:#5a6b80}label{display:block;margin:15px 0 5px;font-weight:600}input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #c7d2e4;border-radius:9px;font-size:16px}button{background:#245fc4;color:white;padding:13px;border:0;border-radius:9px;font-weight:700;cursor:pointer;width:100%;margin-top:18px}button:disabled{opacity:.5}.tabs{display:flex;gap:10px;margin:18px 0}.tabs button{margin:0;background:#e7eef9;color:#23446e}.tabs button.active{background:#245fc4;color:white}.hidden{display:none}.message{min-height:24px;font-weight:600;color:#a32929}small{color:#64748b}</style></head>
+<body><main><section class="card"><h1>Otimizador de Grade</h1><p>Acesso para alunos e professores</p>
+<div class="tabs"><button id="tabEntrar" class="active" type="button">Entrar</button><button id="tabCadastrar" type="button">Criar conta de aluno</button></div>
+<form id="form">
+<div id="nomeBox" class="hidden"><label for="nome">Nome completo</label><input id="nome" autocomplete="name"></div>
+<label for="email">E-mail</label><input id="email" type="email" required autocomplete="email">
+<label for="senha">Senha</label><input id="senha" type="password" required minlength="8" autocomplete="current-password">
+<button id="enviar" type="submit">Entrar</button>
+</form><p class="message" id="msg" role="status"></p>
+<small>Professores entram com e-mail e senha de uma conta autorizada pela administração. O cadastro público cria somente contas de aluno.</small>
+</section></main>
+<script type="module">
+import {supabase,configured,currentProfile} from './auth.js';
+const $=id=>document.getElementById(id);let cadastrar=false;
+function aba(v){cadastrar=v;$('tabEntrar').classList.toggle('active',!v);$('tabCadastrar').classList.toggle('active',v);$('nomeBox').classList.toggle('hidden',!v);$('nome').required=v;$('enviar').textContent=v?'Criar conta de aluno':'Entrar';$('senha').autocomplete=v?'new-password':'current-password';$('msg').textContent='';}
+$('tabEntrar').onclick=()=>aba(false);$('tabCadastrar').onclick=()=>aba(true);
+$('form').addEventListener('submit',async e=>{
+ e.preventDefault();$('msg').textContent='Aguarde...';$('enviar').disabled=true;
+ try{
+  if(!configured)throw new Error('O administrador precisa configurar o Supabase.');
+  const email=$('email').value.trim(),password=$('senha').value;
+  if(cadastrar){
+   const nome=$('nome').value.trim();if(nome.length<2)throw new Error('Informe seu nome completo.');
+   const {data,error}=await supabase.auth.signUp({email,password,options:{data:{nome}}});
+   if(error)throw error;
+   if(!data.session){$('msg').style.color='#176b49';$('msg').textContent='Conta criada. Verifique seu e-mail para confirmar o cadastro antes de entrar.';return;}
+  }else{
+   const {error}=await supabase.auth.signInWithPassword({email,password});
+   if(error)throw error;
+  }
+  const p=await currentProfile();if(!p)throw new Error('Perfil ainda não disponível. Confirme o e-mail e tente novamente.');
+  location.replace(p.role==='professor'?'./professor.html':'./index.html');
+ }catch(err){$('msg').style.color='#a32929';$('msg').textContent=err.message;}finally{$('enviar').disabled=false;}
+});
+</script></body></html>
