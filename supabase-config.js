@@ -1,4 +1,3 @@
-// Preencha com os dados públicos de Project Settings > API no Supabase.
-// Nunca coloque a chave service_role aqui.
-export const SUPABASE_URL = "COLE_A_URL_DO_PROJETO";
-export const SUPABASE_ANON_KEY = "COLE_A_CHAVE_PUBLICA_ANON_OU_PUBLISHABLE";
+// Chave publicável usada pelo cliente web. Nunca coloque a chave secret/service_role aqui.
+export const SUPABASE_URL = "https://vpjrqdumrxhnfutprpzf.supabase.co";
+export const SUPABASE_ANON_KEY = "sb_publishable_r4zNRY3TDr7XRwF76TlnAw_2Z_e07vD";
