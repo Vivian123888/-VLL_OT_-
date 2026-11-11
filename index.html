@@ -19,11 +19,12 @@ label{font-weight:600;font-size:14px}input[type=number],input[type=search]{paddi
 #mensagem{margin:12px 0;font-weight:600}.error{color:#a73535}.ok{color:#176b49}
 #print-title{display:none}
 @media print{body{background:white;color:black}header,.no-print,#mensagem{display:none!important}main{max-width:none;margin:0;padding:0}.panel{box-shadow:none;border:0;padding:0;margin:0}#resultado{display:block!important}#print-title{display:block;font-size:22px}.periodos{display:block}.periodo{break-inside:avoid;margin:10px 0}.periodo h3{background:#eee!important;print-color-adjust:exact}button{display:none}}
+body.auth-pending{visibility:hidden} .accountbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0} .accountbar button{background:#e8eef8;color:#203e6d} @media print{.accountbar{display:none!important}}
 </style>
 </head>
-<body>
+<body class="auth-pending">
 <header class="no-print"><h1>Otimizador de Grade Curricular</h1><p>Engenharia de Produção · Matriz 2026 · Monte seu plano de estudos respeitando pré-requisitos e créditos acumulados.</p></header>
-<main>
+<main><div class="accountbar no-print"><strong id="alunoNome"></strong><button id="sairConta" type="button">Sair da conta</button></div>
 <section class="panel no-print"><h2>1. Configure sua grade</h2>
 <div class="controls">
 <div class="control"><label for="maxPeriodos">Máximo de períodos</label><input id="maxPeriodos" type="number" min="1" max="24" value="12"></div>
@@ -144,4 +145,7 @@ document.getElementById('csv').addEventListener('click',()=>{
 });
 renderLista();
 </script>
-</body></html>
+<script type="module">
+import {requireRole,logout} from './auth.js';
+try{const perfil=await requireRole('aluno');if(perfil){document.getElementById('alunoNome').textContent='Aluno(a): '+perfil.nome;document.getElementById('sairConta').addEventListener('click',logout);document.body.classList.remove('auth-pending');}}catch(e){document.body.classList.remove('auth-pending');document.body.innerHTML='<main><h2>Configuração de acesso pendente</h2><p>Peça ao administrador para configurar o Supabase. '+String(e.message).replace(/[&<>]/g,'')+'</p><a href="./login.html">Voltar ao login</a></main>';}
+</script></body></html>
