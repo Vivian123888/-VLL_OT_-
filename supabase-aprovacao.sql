@@ -24,6 +24,9 @@ alter table public.solicitacoes_professor enable row level security;
 revoke all on public.solicitacoes_professor from anon,authenticated;
 grant select on public.solicitacoes_professor to authenticated;
 drop policy if exists "Solicitante ve pedido" on public.solicitacoes_professor;
+-- Authenticated sessions need these table privileges; RLS still limits visible rows.
+grant select on public.profiles to authenticated;
+grant select,insert on public.alunos_acompanhados to authenticated;
 create policy "Solicitante ve pedido" on public.solicitacoes_professor
 for select to authenticated using (
  user_id=(select auth.uid()) or exists(
