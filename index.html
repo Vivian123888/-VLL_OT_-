@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Otimizador de Grade | Engenharia de Produção</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#14233b;background:#f4f7fb}
+*{box-sizing:border-box}body{margin:0}header{background:#142b51;color:white;padding:30px max(18px,calc((100vw - 1120px)/2))}header h1{margin:0;font-size:clamp(23px,3vw,35px)}header p{color:#c9d8f1;max-width:700px}
+main{max-width:1120px;margin:25px auto;padding:0 18px}.panel{background:white;border:1px solid #e0e7f1;border-radius:16px;padding:22px;margin-bottom:20px;box-shadow:0 6px 24px #182e4c0a}
+h2{margin:0 0 14px;font-size:21px}p{line-height:1.5}.muted{color:#59677d;font-size:14px}.controls{display:flex;gap:18px;flex-wrap:wrap;align-items:end}
+label{font-weight:600;font-size:14px}input[type=number],input[type=search]{padding:11px;border:1px solid #c9d4e4;border-radius:9px;font-size:15px;width:100%}.control{width:175px}
+.switch{display:flex;gap:9px;align-items:center;padding-bottom:10px}.switch input,.item input{accent-color:#2463cf}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}button{background:#245fc4;color:white;border:0;border-radius:10px;padding:12px 18px;cursor:pointer;font-size:14px;font-weight:700}button.secondary{background:#e8eef8;color:#203e6d}button:disabled{opacity:.5;cursor:not-allowed}
+#lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;max-height:350px;overflow:auto;margin-top:12px}
+.item{border:1px solid #e3e9f1;padding:10px;border-radius:9px;display:flex;gap:8px;align-items:start;font-size:13px;cursor:pointer}
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0}.stat{background:#edf4ff;border-radius:10px;padding:10px 15px;font-weight:700}
+.periodos{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.periodo{border:1px solid #dce5f0;border-radius:12px;overflow:hidden}.periodo h3{margin:0;background:#eaf1fc;padding:13px;font-size:16px}.periodo ul{margin:0;padding:12px 12px 12px 30px}.periodo li{padding:4px 0;font-size:14px}.periodo footer{padding:10px;background:#f7f9fd;color:#4e5f76;font-size:13px}
+#mensagem{margin:12px 0;font-weight:600}.error{color:#a73535}.ok{color:#176b49}
+#print-title{display:none}
+@media print{body{background:white;color:black}header,.no-print,#mensagem{display:none!important}main{max-width:none;margin:0;padding:0}.panel{box-shadow:none;border:0;padding:0;margin:0}#resultado{display:block!important}#print-title{display:block;font-size:22px}.periodos{display:block}.periodo{break-inside:avoid;margin:10px 0}.periodo h3{background:#eee!important;print-color-adjust:exact}button{display:none}}
+</style>
+</head>
+<body>
+<header class="no-print"><h1>Otimizador de Grade Curricular</h1><p>Engenharia de Produção · Matriz 2026 · Monte seu plano de estudos respeitando pré-requisitos e créditos acumulados.</p></header>
+<main>
+<section class="panel no-print"><h2>1. Configure sua grade</h2>
+<div class="controls">
+<div class="control"><label for="maxPeriodos">Máximo de períodos</label><input id="maxPeriodos" type="number" min="1" max="24" value="12"></div>
+<div class="control"><label for="maxDisciplinas">Disciplinas por período</label><input id="maxDisciplinas" type="number" min="1" max="9" value="7"></div>
+<label class="switch"><input type="checkbox" id="considerarHorarios"> Considerar conflitos de horário</label>
+</div>
+<p class="muted">Os horários são estimativas da base anterior. Para testar a viabilidade da grade 2026, deixe essa opção desmarcada.</p>
+</section>
+<section class="panel no-print"><h2>2. Selecione as disciplinas concluídas</h2>
+<div class="controls"><div style="flex:1;min-width:200px"><input id="busca" type="search" placeholder="Buscar disciplina..." aria-label="Buscar disciplina"></div><button class="secondary" id="limpar">Desmarcar todas</button></div>
+<p class="muted" id="contagem"></p><div id="lista"></div>
+<div class="actions"><button id="gerar">Gerar plano de estudos</button><button id="salvar" class="secondary">Salvar seleção neste navegador</button></div>
+<p id="mensagem" role="status"></p>
+</section>
+<section class="panel" id="resultado" hidden><h2 id="print-title">Meu plano de estudos</h2><h2 class="no-print">3. Sua grade planejada</h2><p id="resumo"></p><div class="stats" id="estatisticas"></div>
+<div class="actions no-print"><button id="pdf">Salvar grade em PDF</button><button id="csv" class="secondary">Baixar CSV</button></div>
+<p class="muted no-print">O botão PDF abre a impressão do navegador. Em “Destino”, escolha “Salvar como PDF”.</p>
+<div id="periodos" class="periodos"></div>
+</section>
+<footer class="muted no-print" style="padding:12px 0 30px">Ferramenta de planejamento acadêmico. Confirme ofertas, horários e equivalências com a coordenação. A busca usa uma heurística e não garante o menor número de períodos.</footer>
+</main>
+<script>
+'use strict';
+const disciplinas=[{"nome":"Cálculo I","horarios":[215,217,413,415,615,617],"requisitos":[],"dificuldade":5,"creditos":4},{"nome":"Introdução à Engenharia","horarios":[415,417],"requisitos":[],"dificuldade":2,"creditos":2},{"nome":"Geometria Analítica e Vetorial","horarios":[],"requisitos":[],"dificuldade":4,"creditos":4},{"nome":"Programação I","horarios":[213,215,513,515],"requisitos":[],"dificuldade":3,"creditos":3},{"nome":"Química","horarios":[313,315,613,615],"requisitos":[],"dificuldade":3,"creditos":3},{"nome":"Expressão Gráfica","horarios":[313,315,513,515],"requisitos":[],"dificuldade":2,"creditos":3},{"nome":"Administração I","horarios":[213,215],"requisitos":[],"dificuldade":3,"creditos":4},{"nome":"Cálculo II","horarios":[213,215,413,415,613,615],"requisitos":["Cálculo I"],"dificuldade":5,"creditos":4},{"nome":"Física I","horarios":[415,417,615,617],"requisitos":["Cálculo I"],"dificuldade":4,"creditos":4},{"nome":"Física Experimental I","horarios":[515,517],"requisitos":["Cálculo I"],"dificuldade":2,"creditos":1},{"nome":"Programação II","horarios":[215,217,315,317],"requisitos":["Programação I"],"dificuldade":4,"creditos":3},{"nome":"Álgebra Linear","horarios":[313,315,515,517],"requisitos":["Geometria Analítica e Vetorial"],"dificuldade":3,"creditos":4},{"nome":"Cálculo III","horarios":[318,320,518,520],"requisitos":["Cálculo II"],"dificuldade":5,"creditos":4},{"nome":"Física II","horarios":[418,420,618,620],"requisitos":["Física I"],"dificuldade":5,"creditos":4},{"nome":"Introdução às Equações Diferenciais Ordinárias","horarios":[],"requisitos":["Cálculo II"],"dificuldade":4,"creditos":2},{"nome":"Economia I","horarios":[218,220,222],"requisitos":[],"dificuldade":3,"creditos":4},{"nome":"Física Experimental II","horarios":[613,615],"requisitos":["Física I","Física Experimental I"],"dificuldade":3,"creditos":1},{"nome":"Probabilidade e Estatística","horarios":[415,417,515,517],"requisitos":["Cálculo I"],"dificuldade":3,"creditos":4},{"nome":"Cálculo Numérico","horarios":[315,317,515,517],"requisitos":["Álgebra Linear","Programação I","Introdução às Equações Diferenciais Ordinárias"],"dificuldade":3,"creditos":3},{"nome":"Fundamentos de Engenharia de Segurança","horarios":[513,515],"requisitos":["Introdução à Engenharia"],"dificuldade":2,"creditos":2},{"nome":"Ciência dos Materiais","horarios":[],"requisitos":["Química"],"dificuldade":4,"creditos":4},{"nome":"Física III","horarios":[215,217,415,417],"requisitos":["Cálculo II"],"dificuldade":5,"creditos":4},{"nome":"Física Experimental III","horarios":[413,415],"requisitos":["Física II","Física Experimental II"],"dificuldade":3,"creditos":1},{"nome":"Métodos Estatísticos","horarios":[418,422],"requisitos":["Probabilidade e Estatística","Álgebra Linear"],"dificuldade":4,"creditos":3},{"nome":"Engenharia de Dados e Conhecimento","horarios":[],"requisitos":["Programação II","Probabilidade e Estatística"],"dificuldade":4,"creditos":3},{"nome":"Fenômenos de Transporte","horarios":[318,320,518,520],"requisitos":["Cálculo II","Física II"],"dificuldade":4,"creditos":4},{"nome":"Engenharia do Meio Ambiente","horarios":[213,215],"requisitos":["Economia I"],"dificuldade":2,"creditos":2},{"nome":"Contabilidade Gerencial","horarios":[318,320,322],"requisitos":["Economia I"],"dificuldade":3,"creditos":3},{"nome":"Eletricidade Aplicada","horarios":[518,520,522],"requisitos":["Física III"],"dificuldade":4,"creditos":4},{"nome":"Engenharia de Métodos","horarios":[618,620,622],"requisitos":["Administração I"],"dificuldade":4,"creditos":3},{"nome":"Mecânica Técnica","horarios":[313,315,513,515],"requisitos":["Ciência dos Materiais"],"dificuldade":4,"creditos":4},{"nome":"Planejamento e Controle da Produção","horarios":[418,420,422],"requisitos":["Administração I"],"dificuldade":4,"creditos":3},{"nome":"Metodologia Científica","horarios":[413,415],"requisitos":["Introdução à Engenharia"],"dificuldade":2,"creditos":2},{"nome":"Pesquisa Operacional I","horarios":[418,420,422],"requisitos":["Métodos Estatísticos"],"dificuldade":4,"creditos":4},{"nome":"Engenharia Econômico-Financeira","horarios":[218,220,222],"requisitos":["Economia I"],"dificuldade":3,"creditos":3},{"nome":"Ergonomia","horarios":[518,520,522,524],"requisitos":["Fundamentos de Engenharia de Segurança","Mecânica Técnica"],"dificuldade":3,"creditos":3},{"nome":"Mecânica dos Materiais","horarios":[315,317],"requisitos":["Mecânica Técnica"],"dificuldade":4,"creditos":4},{"nome":"Pesquisa Operacional II","horarios":[418,420,422],"requisitos":["Pesquisa Operacional I"],"dificuldade":4,"creditos":3},{"nome":"Estratégia de Organizações","horarios":[518,520,522],"requisitos":["Administração I"],"dificuldade":4,"creditos":4},{"nome":"Engenharia da Qualidade","horarios":[618,620,622],"requisitos":["Métodos Estatísticos"],"dificuldade":4,"creditos":4},{"nome":"Projeto do Produto","horarios":[518,520,522],"requisitos":["Ergonomia"],"dificuldade":4,"creditos":3},{"nome":"Arranjo Físico Industrial","horarios":[318,320,322],"requisitos":["Planejamento e Controle da Produção"],"dificuldade":3,"creditos":4},{"nome":"Gestão da Manutenção","horarios":[518,520,522],"requisitos":["Planejamento e Controle da Produção"],"dificuldade":4,"creditos":4},{"nome":"Gestão de Projetos","horarios":[218,220,222],"requisitos":["Engenharia de Métodos"],"dificuldade":4,"creditos":3},{"nome":"Metodologias Qualitativas e Quantitativas","horarios":[],"requisitos":["Métodos Estatísticos"],"dificuldade":3,"creditos":3},{"nome":"Logística e Transportes","horarios":[318,320,322],"requisitos":["Arranjo Físico Industrial"],"dificuldade":4,"creditos":4},{"nome":"Estágio Supervisionado","horarios":[],"requisitos":["80 créditos acumulados"],"dificuldade":3,"creditos":8},{"nome":"Tópicos Especiais II - Produção","horarios":[],"requisitos":["Planejamento e Controle da Produção"],"dificuldade":3,"creditos":4},{"nome":"Tópicos Especiais I - Finanças","horarios":[],"requisitos":["Engenharia Econômico-Financeira"],"dificuldade":3,"creditos":4},{"nome":"Tópicos Especiais III - Metodologia","horarios":[],"requisitos":["Administração I"],"dificuldade":3,"creditos":4},{"nome":"Projeto Final I","horarios":[622],"requisitos":["100 créditos acumulados"],"dificuldade":4,"creditos":4},{"nome":"Projeto Final II","horarios":[624],"requisitos":["Projeto Final I"],"dificuldade":5,"creditos":4},{"nome":"Optativa Livre II","horarios":[],"requisitos":[],"dificuldade":3,"creditos":4},{"nome":"Optativa Livre I","horarios":[],"requisitos":[],"dificuldade":3,"creditos":4}];
+const mapa=new Map(disciplinas.map(d=>[d.nome,d]));
+const lista=document.getElementById('lista'), mensagem=document.getElementById('mensagem');
+const marcadas=new Set();
+try { for(const nome of JSON.parse(localStorage.getItem('grade-concluidas')||'[]')) if(mapa.has(nome)) marcadas.add(nome); } catch(e){}
+const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function renderLista(){
+ const filtro=document.getElementById('busca').value.toLocaleLowerCase('pt-BR');
+ lista.replaceChildren();
+ for(const d of disciplinas.filter(d=>d.nome.toLocaleLowerCase('pt-BR').includes(filtro))){
+  const label=document.createElement('label');label.className='item';
+  const input=document.createElement('input');input.type='checkbox';input.checked=marcadas.has(d.nome);
+  input.addEventListener('change',()=>{if(input.checked)marcadas.add(d.nome);else marcadas.delete(d.nome);atualizarContagem();});
+  const span=document.createElement('span');span.textContent=d.nome+' · '+d.creditos+' créditos';
+  label.append(input,span);lista.append(label);
+ }
+ atualizarContagem();
+}
+function atualizarContagem(){document.getElementById('contagem').textContent=marcadas.size+' concluídas · '+[...marcadas].reduce((s,n)=>s+mapa.get(n).creditos,0)+' créditos informados';}
+document.getElementById('busca').addEventListener('input',renderLista);
+document.getElementById('limpar').addEventListener('click',()=>{marcadas.clear();renderLista();});
+document.getElementById('salvar').addEventListener('click',()=>{
+ try{localStorage.setItem('grade-concluidas',JSON.stringify([...marcadas]));mensagem.textContent='Seleção salva neste navegador.';mensagem.className='ok';}
+ catch(e){mensagem.textContent='Não foi possível salvar a seleção neste navegador.';mensagem.className='error';}
+});
+function validar(){
+ for(const d of disciplinas)for(const r of d.requisitos)if(!/^\d+ créditos acumulados$/.test(r)&&!mapa.has(r))throw Error('Pré-requisito desconhecido: '+r+' em '+d.nome);
+}
+function elegivel(d,feitas){
+ const creditos=[...feitas].reduce((s,n)=>s+mapa.get(n).creditos,0);
+ return d.requisitos.every(r=>{const m=r.match(/^(\d+) créditos acumulados$/);return m?creditos>=Number(m[1]):feitas.has(r);});
+}
+function planejar(maxP,maxD,considerar){
+ validar();
+ const dependentes=new Map(disciplinas.map(d=>[d.nome,[]]));
+ for(const d of disciplinas)for(const r of d.requisitos)if(dependentes.has(r))dependentes.get(r).push(d.nome);
+ const cache=new Map();
+ function profundidade(nome,pilha=new Set()){
+  if(pilha.has(nome))throw Error('Ciclo de pré-requisitos: '+nome);
+  if(cache.has(nome))return cache.get(nome);
+  const prox=new Set(pilha);prox.add(nome);
+  const filhos=dependentes.get(nome);
+  const p=filhos.length?1+Math.max(...filhos.map(n=>profundidade(n,prox))):0;
+  cache.set(nome,p);return p;
+ }
+ const ordem=[...disciplinas].sort((a,b)=>profundidade(b.nome)-profundidade(a.nome)||dependentes.get(b.nome).length-dependentes.get(a.nome).length||b.dificuldade-a.dificuldade||a.nome.localeCompare(b.nome,'pt-BR'));
+ const feitas=new Set(marcadas),plano=[];
+ for(let p=0;p<maxP&&feitas.size<disciplinas.length;p++){
+  const selecionadas=[],ocupados=new Set();
+  for(const d of ordem){
+   if(feitas.has(d.nome)||!elegivel(d,feitas)||selecionadas.length>=maxD)continue;
+   if(considerar&&d.horarios.some(h=>ocupados.has(h)))continue;
+   selecionadas.push(d);
+   if(considerar)for(const h of d.horarios)ocupados.add(h);
+  }
+  if(!selecionadas.length)break;
+  plano.push(selecionadas);for(const d of selecionadas)feitas.add(d.nome);
+ }
+ return {plano,restantes:disciplinas.filter(d=>!feitas.has(d.nome))};
+}
+let ultimo=null;
+document.getElementById('gerar').addEventListener('click',()=>{
+ try{
+  const maxP=Number(document.getElementById('maxPeriodos').value),maxD=Number(document.getElementById('maxDisciplinas').value);
+  if(!Number.isInteger(maxP)||maxP<1||maxP>24||!Number.isInteger(maxD)||maxD<1||maxD>9)throw Error('Informe períodos entre 1 e 24 e disciplinas entre 1 e 9.');
+  const resultado=planejar(maxP,maxD,document.getElementById('considerarHorarios').checked);
+  ultimo=resultado;
+  const {plano,restantes}=resultado;
+  if(!plano.length){document.getElementById('resultado').hidden=true;mensagem.textContent='Não foi possível montar um período. Verifique os pré-requisitos.';mensagem.className='error';return;}
+  const area=document.getElementById('periodos');area.replaceChildren();
+  for(let i=0;i<plano.length;i++){
+   const ds=plano[i],card=document.createElement('article');card.className='periodo';
+   const h=document.createElement('h3');h.textContent='Período '+(i+1);
+   const ul=document.createElement('ul');
+   for(const d of ds){const li=document.createElement('li');li.textContent=d.nome+' ('+d.creditos+' cr.)';ul.append(li);}
+   const footer=document.createElement('footer');footer.textContent=ds.length+' disciplinas · '+ds.reduce((s,d)=>s+d.creditos,0)+' créditos';
+   card.append(h,ul,footer);area.append(card);
+  }
+  document.getElementById('resultado').hidden=false;
+  document.getElementById('resumo').textContent=restantes.length?'Plano parcial: faltam '+restantes.length+' disciplinas. Aumente o limite de períodos ou disciplinas.':'Plano completo: todas as disciplinas estão contempladas.';
+  const totais=plano.flat();
+  document.getElementById('estatisticas').innerHTML='<span class="stat">'+plano.length+' períodos</span><span class="stat">'+totais.length+' disciplinas planejadas</span><span class="stat">'+totais.reduce((s,d)=>s+d.creditos,0)+' créditos planejados</span>';
+  mensagem.textContent=restantes.length?'Grade parcial gerada. Confira as disciplinas pendentes.':'Grade completa gerada!';
+  mensagem.className=restantes.length?'error':'ok';
+  document.getElementById('resultado').scrollIntoView({behavior:'smooth'});
+ }catch(e){mensagem.textContent='Erro: '+e.message;mensagem.className='error';}
+});
+document.getElementById('pdf').addEventListener('click',()=>{if(ultimo)window.print();});
+document.getElementById('csv').addEventListener('click',()=>{
+ if(!ultimo)return;
+ const linhas=[['Período','Disciplina','Créditos'],...ultimo.plano.flatMap((ds,i)=>ds.map(d=>[i+1,d.nome,d.creditos]))];
+ const csv='\ufeff'+linhas.map(row=>row.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+ const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+ const a=document.createElement('a');a.href=url;a.download='grade_otimizada.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+renderLista();
+</script>
+</body></html>
