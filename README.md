@@ -1,108 +1,58 @@
 # Otimizador de Grade Curricular — Engenharia de Produção
 
-Aplicação web estática para planejamento de disciplinas da matriz 2026.
+Aplicação web para planejamento de disciplinas da matriz 2026, com autenticação Supabase para alunos, professores e administradora.
 
 ## Publicar no GitHub Pages
 
-1. Abra **Settings** do repositório.
-2. Selecione **Pages** no menu lateral.
-3. Em **Build and deployment**, escolha **Deploy from a branch**.
-4. Selecione a branch **main**, pasta **/(root)**, e clique em **Save**.
-5. Aguarde a publicação e use o endereço exibido em Pages.
-
-A aplicação está em `index.html` e não exige Google Colab, servidor ou banco de dados.
+1. Em **Settings > Pages**, escolha **Deploy from a branch**.
+2. Selecione a branch **main** e a pasta **/(root)**.
+3. Aguarde a publicação do site.
 
 ## Utilização
 
-- Marque as disciplinas já concluídas.
-- Defina o número máximo de períodos e o limite de disciplinas por período.
-- Marque **Considerar conflitos de horário** somente quando quiser usar os horários históricos.
-- Clique em **Gerar plano de estudos**.
-- Use **Salvar grade em PDF** e escolha **Salvar como PDF** no destino de impressão do navegador.
-- Opcionalmente baixe um CSV ou salve sua seleção no navegador.
+- Marque as disciplinas já concluídas, defina o limite de períodos e clique em **Gerar plano de estudos**.
+- A grade é calculada por uma heurística e deve ser validada com a coordenação.
+- A seleção de disciplinas concluídas fica no navegador do aluno.
 
-## Observações
+## Login e permissões
 
-A aplicação usa uma **heurística**, não um algoritmo de otimização exata: a grade encontrada não é necessariamente a de menor duração. Requisitos de créditos acumulados são verificados antes de cada período. As ofertas e horários devem ser validados junto à coordenação; horários vazios não indicam disponibilidade confirmada.
+O site usa Supabase para autenticação e armazenamento protegido. A configuração do projeto fica em [supabase-config.js](./supabase-config.js), com URL e chave publicável. Nunca exponha uma chave secreta ou `service_role` no GitHub Pages.
 
-As disciplinas concluídas são armazenadas somente no navegador do aluno quando ele clica em **Salvar seleção neste navegador**.
+- Em **Authentication > URL Configuration**, configure a URL de login do GitHub Pages e os redirecionamentos permitidos.
+- Em **Authentication > Providers > Email**, mantenha o cadastro habilitado e deixe **Confirm email** desligado para que alunos possam entrar sem confirmação.
+- [supabase.sql](./supabase.sql) cria perfis e regras RLS.
+- [supabase-aprovacao.sql](./supabase-aprovacao.sql) adiciona solicitações de professor e o papel de administradora.
 
+### Páginas
 
-## Login de alunos e professores (Supabase)
+- `login.html`: entrar, criar conta de aluno ou solicitar acesso de professor.
+- `index.html`: área do aluno.
+- `professor.html`: área de professor aprovado.
+- `admin.html`: fila de solicitações e lista de contas de usuário.
 
-O site usa [Supabase](https://supabase.com) para autenticação real e armazenamento protegido. **O login não funciona até concluir esta configuração**:
+A única forma de conceder os papéis `professor` e `admin` é por rotinas protegidas ou operações administrativas no banco. O navegador não pode promover uma conta. O painel administrativo impede excluir a própria conta e protege outras contas administrativas. Ao excluir um professor, os registros de alunos vinculados também são removidos.
 
-1. Crie um projeto no Supabase.
-2. No **SQL Editor**, execute todo o conteúdo de [supabase.sql](./supabase.sql). Isso cria os perfis, a tabela de acompanhamento e as políticas RLS.
-3. Em **Project Settings > API** (ou **Connect**), copie a **Project URL** e a chave **anon/publishable** pública para [supabase-config.js](./supabase-config.js). **Nunca** publique a chave `service_role` ou `secret`.
-4. Em **Authentication > URL Configuration**, configure a **Site URL** como `https://vivian123888.github.io/-VLL_OT_-/login.html` e adicione `https://vivian123888.github.io/-VLL_OT_-/**` às URLs de redirecionamento permitidas.
-5. Em **Authentication > Providers > Email**, habilite o cadastro por e-mail e a confirmação de e-mail (recomendado).
-6. Para um professor, crie a conta no **Authentication > Users** (informe nome no metadata `nome`, se possível) e, no SQL Editor, execute o comando comentado no fim de `supabase.sql` para promover seu perfil a `professor`. **Não existe cadastro público de professores**, evitando que alunos se atribuam permissões.
-7. Publique o site pelo GitHub Pages (branch `main`, pasta `/(root)`).
+## Configuração administrativa e funções
 
-### Rotas
-
-- `login.html`: entrar com e-mail/senha ou criar conta de aluno com nome, e-mail e senha.
-- `index.html`: otimizador acessível apenas ao perfil `aluno`, após autenticação.
-- `professor.html`: painel restrito ao perfil `professor`, com nome, matrícula e período do aluno.
-- `supabase.sql`: esquema do banco e regras de segurança.
-
-**Privacidade:** o nome, a matrícula e o período dos alunos são dados pessoais. Informe aos usuários a finalidade do cadastro e mantenha o acesso restrito. O painel atualmente permite ao professor ver somente os alunos que ele mesmo cadastrou. O cadastro de um aluno pelo professor **não vincula automaticamente** a matrícula à conta criada pelo aluno; essa associação exige uma etapa adicional com verificação de identidade.
-
-**Importante:** o arquivo `index.html` contém a interface e os dados públicos da matriz. O bloqueio de acesso é implementado pela autenticação da página; os dados protegidos dos professores permanecem no Supabase sob políticas RLS.
-
-## Aprovação de professores e notificações por e-mail
-
-**Implementação no código concluída, mas depende de ativação manual dos serviços externos.** O administrador designado é **vivianlauriano02@gmail.com**.
-
-### 1. Criar a conta de administrador
-
-1. Configure o Supabase conforme as etapas anteriores.
-2. Crie uma conta de aluno com o e-mail **vivianlauriano02@gmail.com** e confirme o e-mail.
-3. No **SQL Editor**, execute [supabase-aprovacao.sql](./supabase-aprovacao.sql), que cria a tabela de solicitações e as funções protegidas.
-4. Execute, **apenas no SQL Editor com privilégios administrativos**, o comando abaixo. A promoção só ocorrerá se a conta já existir e tiver e-mail confirmado:
+A conta administradora deve existir em Supabase Auth. Depois de executar [supabase-aprovacao.sql](./supabase-aprovacao.sql), conceda o papel no SQL Editor, substituindo `admin@example.com` pelo endereço da conta:
 
 ```sql
 update public.profiles set role='admin'
 where id=(select id from auth.users
-          where lower(email)='vivianlauriano02@gmail.com' and email_confirmed_at is not null);
+          where lower(email)='admin@example.com');
 ```
 
-O endereço de e-mail sozinho não dá privilégios: a promoção é uma operação administrativa no banco. **Não coloque essa instrução em código executado no navegador.**
+A função [admin-usuarios](./supabase/functions/admin-usuarios/index.ts) lista as contas e exclui usuários usando privilégios de servidor. O segredo `service_role` nunca deve ir para o navegador. Implante as funções `admin-usuarios` e `notificar-solicitacao` no Supabase a partir dos arquivos em `supabase/functions/`.
 
-### 2. Envio automático de e-mails
+## Notificação de pedidos de professor
 
-1. Crie uma conta no [Resend](https://resend.com), verifique um domínio remetente e obtenha uma API key.
-2. No projeto Supabase, configure os segredos da Edge Function: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (ex.: `Notificacoes <avisos@seudominio.com>`) e `ADMIN_EMAIL=vivianlauriano02@gmail.com`. **Não coloque esses segredos no GitHub Pages, nem em `supabase-config.js`.**
-3. Publique a função em [supabase/functions/notificar-solicitacao/index.ts](./supabase/functions/notificar-solicitacao/index.ts). Com o [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started), a partir da raiz do repositório:
+A função [notificar-solicitacao](./supabase/functions/notificar-solicitacao/index.ts) envia para o destinatário configurado no segredo privado `ADMIN_EMAIL` o nome, e-mail e identificador do pedido. O administrador analisa o pedido em `admin.html`; o e-mail não aprova o acesso sozinho.
 
-```bash
-supabase login
-supabase link --project-ref SEU_PROJECT_REF
-supabase secrets set RESEND_API_KEY=SUA_CHAVE RESEND_FROM_EMAIL=avisos@seudominio.com ADMIN_EMAIL=vivianlauriano02@gmail.com
-supabase functions deploy notificar-solicitacao
-```
+O destinatário `ADMIN_EMAIL` já está salvo como segredo no projeto Supabase conectado. Para ativar o envio, crie uma conta no [Resend](https://resend.com), verifique um domínio remetente e salve no Supabase **Edge Functions > Secrets**:
 
-O Supabase disponibiliza automaticamente as variáveis `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` para Edge Functions hospedadas. Mantenha a verificação JWT habilitada.
+- `RESEND_API_KEY`: chave da API Resend.
+- `RESEND_FROM_EMAIL`: remetente verificado, por exemplo `Notificacoes <avisos@seudominio.com>`.
 
-**Atenção:** se você usar apenas um endereço de testes do Resend, pode haver restrições de destinatários. Verifique o domínio remetente para notificações de produção.
+Não coloque essas credenciais em arquivos do site ou no GitHub. Sem esses dois segredos, o pedido ainda fica visível no painel administrativo, mas o e-mail automático não é enviado.
 
-### 3. Fluxo de uso
-
-- **Professor:** abre `login.html`, escolhe **Solicitar acesso de professor**, informa nome/e-mail/senha e confirma o e-mail. Na próxima entrada, o sistema registra a solicitação e chama a função de notificação. Também é possível solicitar usando uma conta existente.
-- **Administrador:** recebe e-mail de aviso e entra em `admin.html` para aprovar ou rejeitar. A notificação **não contém um link de aprovação sem autenticação**.
-- **Professor aprovado:** passa a ter o perfil `professor` e é direcionado ao painel `professor.html`.
-- **Aluno:** continua com o perfil `aluno` e acessa o otimizador normalmente.
-
-As funções SQL validam a identidade pelo Supabase Auth; o navegador não pode atribuir a si mesmo a função de professor ou administrador. Solicitações são únicas por usuário, e a Edge Function limita reenvios do mesmo aviso.
-
-### 4. Testes de aceitação
-
-1. Cadastre um aluno comum e verifique que não acessa `admin.html` nem `professor.html`.
-2. Solicite uma conta de professor, confirme o e-mail e faça login. Verifique o status **pendente**.
-3. Confirme que o e-mail chegou à caixa de **vivianlauriano02@gmail.com** (e verifique logs da função se não chegar).
-4. Entre como administrador e aprove a solicitação em `admin.html`.
-5. Faça novo login com a conta aprovada e confirme o acesso ao painel de professor.
-6. Repita com outra conta e rejeite para confirmar que ela não ganha acesso.
-
-**Limite:** a publicação do código no GitHub não cria automaticamente um projeto Supabase, não define os segredos do Resend e não envia e-mails antes da configuração acima.
+As funções validam a sessão Supabase antes de realizar operações protegidas. Apenas uma administradora pode listar/excluir contas ou analisar pedidos de professor.
