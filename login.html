@@ -8,7 +8,7 @@
 <label for="senha">Senha</label><input id="senha" type="password" required minlength="8" autocomplete="current-password">
 <button id="enviar" type="submit">Entrar</button>
 </form><p class="message" id="msg" role="status"></p>
-<small>O cadastro de professor requer confirmação do e-mail e aprovação administrativa. A senha é gerenciada pelo Supabase.</small>
+<small>Alunos podem entrar após criar a conta. O acesso de professor depende de aprovação administrativa. A senha é gerenciada pelo Supabase.</small>
 </section></main>
 <script type="module">
 import {supabase,configured,currentProfile} from './auth.js';
@@ -32,7 +32,7 @@ async function solicitarAcesso(){
  if(error)throw error;
  let aviso='Solicitação registrada. Aguarde a aprovação da administração.';
  const {error:notifyError}=await supabase.functions.invoke('notificar-solicitacao',{body:{request_id:data}});
- if(notifyError)aviso+=' O aviso automático por e-mail não foi confirmado; a solicitação está disponível no painel administrativo.';
+ if(notifyError)aviso+=' O pedido está no painel administrativo, mas o aviso por e-mail ainda não foi enviado.';
  return aviso;
 }
 $('form').addEventListener('submit',async e=>{
@@ -48,8 +48,8 @@ $('form').addEventListener('submit',async e=>{
     if(solicitarProfessor){try{localStorage.setItem('professor-pendente-email',email.toLowerCase());}catch(e){}}
     $('msg').style.color='#176b49';
     $('msg').textContent=solicitarProfessor
-      ?'Conta criada. Confirme seu e-mail, entre com sua senha e envie a solicitação de professor.'
-      :'Conta criada. Verifique seu e-mail para confirmar o cadastro antes de entrar.';
+      ?'Conta criada. Entre com sua senha para enviar a solicitação de professor.'
+      :'Conta criada. Entre usando seu e-mail e senha.';
     return;
    }
    if(solicitarProfessor){
@@ -59,7 +59,7 @@ $('form').addEventListener('submit',async e=>{
    const {error}=await supabase.auth.signInWithPassword({email,password});
    if(error)throw error;
   }
-  const p=await currentProfile();if(!p)throw new Error('Perfil ainda não disponível. Confirme o e-mail e tente novamente.');
+  const p=await currentProfile();if(!p)throw new Error('Perfil ainda não disponível. Tente entrar novamente.');
   if(!cadastrar&&p.role==='aluno'){
    let desejoProfessor=false;
    try{desejoProfessor=desejoProfessor||localStorage.getItem('professor-pendente-email')===email.toLowerCase();}catch(e){}
@@ -75,7 +75,7 @@ $('form').addEventListener('submit',async e=>{
     $('msg').textContent='Sua solicitação de professor está pendente de aprovação.';
     if(!request.notification_sent_at){
      const {error:notifyError}=await supabase.functions.invoke('notificar-solicitacao',{body:{request_id:request.id}});
-     if(notifyError)$('msg').textContent+=' O aviso por e-mail ainda não foi confirmado.';
+     if(notifyError)$('msg').textContent+=' O aviso por e-mail ainda não foi enviado.';
     }
     return;
    }
