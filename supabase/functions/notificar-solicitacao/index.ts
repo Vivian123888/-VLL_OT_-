@@ -1,5 +1,5 @@
 // Supabase Edge Function: notificar-solicitacao
-// Secrets: RESEND_API_KEY, RESEND_FROM_EMAIL, ADMIN_EMAIL, SUPABASE_SERVICE_ROLE_KEY
+// Secrets: RESEND_API_KEY, RESEND_FROM_EMAIL, ADMIN_EMAIL (optional), SUPABASE_SERVICE_ROLE_KEY
 import { createClient } from 'npm:@supabase/supabase-js@2';
 const cors={
  'Access-Control-Allow-Origin':'*',
@@ -16,13 +16,13 @@ Deno.serve(async req=>{
   const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const resend=Deno.env.get('RESEND_API_KEY');
   const from=Deno.env.get('RESEND_FROM_EMAIL');
-  const adminEmail=Deno.env.get('ADMIN_EMAIL');
-  if(!resend||!from||!adminEmail)return json(503,{error:'Envio de e-mails não configurado'});
+  const adminEmail=Deno.env.get('ADMIN_EMAIL')||'vivianlauriano02@gmail.com';
+  if(!resend||!from)return json(503,{error:'Envio de e-mails não configurado'});
   const bearer=req.headers.get('authorization')||'';
   if(!bearer.startsWith('Bearer '))return json(401,{error:'Não autenticado'});
   const client=createClient(url,anon,{global:{headers:{Authorization:bearer}}});
   const {data:{user},error:userErr}=await client.auth.getUser();
-  if(userErr||!user||!user.email_confirmed_at)return json(401,{error:'Confirme seu e-mail'});
+  if(userErr||!user)return json(401,{error:'Não autenticado'});
   const {request_id}=await req.json();
   if(typeof request_id!=='string'||! /^[0-9a-f-]{36}$/i.test(request_id))return json(400,{error:'ID inválido'});
   const db=createClient(url,service);
@@ -31,7 +31,6 @@ Deno.serve(async req=>{
    .eq('id',request_id).eq('user_id',user.id).single();
   if(fetchErr||!request||request.status!=='pendente')return json(404,{error:'Solicitação não encontrada'});
   if(request.notification_sent_at)return json(200,{ok:true,already_sent:true});
-  // Reserva única para impedir chamadas repetidas e spam.
   const deadline=new Date(Date.now()-5*60*1000).toISOString();
   const {data:claimed,error:claimErr}=await db.from('solicitacoes_professor')
    .update({notification_claimed_at:new Date().toISOString()})
