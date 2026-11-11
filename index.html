@@ -19,6 +19,8 @@ label{font-weight:600;font-size:14px}input[type=number],input[type=search]{paddi
 .periodos{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
 .periodo{border:1px solid #dce5f0;border-radius:12px;overflow:hidden}.periodo h3{margin:0;background:#eaf1fc;padding:13px;font-size:16px}.periodo ul{margin:0;padding:12px 12px 12px 30px}.periodo li{padding:4px 0;font-size:14px}.periodo footer{padding:10px;background:#f7f9fd;color:#4e5f76;font-size:13px}
 #mensagem{margin:12px 0;font-weight:600}.error{color:#a73535}.ok{color:#176b49}
+.warning{color:#855b00;background:#fff4d6;border:1px solid #efcf7a;border-radius:9px;padding:10px;font-weight:600}
+#alertaMatriz,#alertaRequisitos{margin:12px 0}
 #print-title{display:none}
 @media print{body{background:white;color:black}header,.no-print,#mensagem{display:none!important}main{max-width:none;margin:0;padding:0}.panel{box-shadow:none;border:0;padding:0;margin:0}#resultado{display:block!important}#print-title{display:block;font-size:22px}.periodos{display:block}.periodo{break-inside:avoid;margin:10px 0}.periodo h3{background:#eee!important;print-color-adjust:exact}button{display:none}}
 body.auth-pending{visibility:hidden} .accountbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0} .accountbar button{background:#e8eef8;color:#203e6d} @media print{.accountbar{display:none!important}}
@@ -26,7 +28,7 @@ body.auth-pending{visibility:hidden} .accountbar{display:flex;gap:12px;align-ite
 </head>
 <body class="auth-pending">
 <header class="no-print"><h1>Otimizador de Grade Curricular</h1><p>Engenharia de Produção · Matriz 2026 · Monte seu plano de estudos respeitando os pré-requisitos da matriz.</p></header>
-<main><div class="accountbar no-print"><strong id="alunoNome"></strong><button id="sairConta" type="button">Sair da conta</button></div>
+<main><p id="alertaMatriz" class="warning" role="alert" hidden></p><div class="accountbar no-print"><strong id="alunoNome"></strong><button id="sairConta" type="button">Sair da conta</button></div>
 <section class="panel no-print"><h2>1. Configure sua grade</h2>
 <div class="controls">
 <div class="control"><label for="maxPeriodos">Máximo de períodos</label><input id="maxPeriodos" type="number" min="1" max="24" value="12"></div>
@@ -37,7 +39,7 @@ body.auth-pending{visibility:hidden} .accountbar{display:flex;gap:12px;align-ite
 </section>
 <section class="panel no-print"><h2>2. Selecione as disciplinas concluídas</h2>
 <div class="controls"><div style="flex:1;min-width:200px"><input id="busca" type="search" placeholder="Buscar disciplina..." aria-label="Buscar disciplina"></div><button class="secondary" id="limpar">Desmarcar todas</button></div>
-<p class="muted" id="contagem"></p><div id="lista"></div>
+<p class="muted" id="contagem"></p><p id="alertaRequisitos" role="alert" hidden></p><div id="lista"></div>
 <div class="actions"><button id="gerar">Gerar plano de estudos</button><button id="salvar" class="secondary">Salvar seleção neste navegador</button></div>
 <p id="mensagem" role="status"></p>
 </section>
@@ -82,7 +84,41 @@ function renderLista(){
  }
  atualizarContagem();
 }
-function atualizarContagem(){document.getElementById('contagem').textContent=marcadas.size+' concluídas';}
+function encontrarConflitosMatriz(){
+ return disciplinas.flatMap(d=>d.requisitos
+  .filter(r=>mapa.has(r)&&mapa.get(r).periodo>=d.periodo)
+  .map(r=>({disciplina:d.nome,periodo:d.periodo,requisito:r,periodoRequisito:mapa.get(r).periodo})));
+}
+function mostrarAvisoMatriz(){
+ const aviso=document.getElementById('alertaMatriz'),conflitos=encontrarConflitosMatriz();
+ if(!conflitos.length){aviso.hidden=true;return;}
+ aviso.textContent='Possível conflito de pré-requisito: '+conflitos.map(c=>c.disciplina+' está no período '+c.periodo+' e depende de '+c.requisito+', previsto no período '+c.periodoRequisito).join('; ')+'. Confira se o requisito pode ser cursado no mesmo período ou se a matriz precisa de ajuste.';
+ aviso.hidden=false;
+}
+function conflitosDaSelecao(){
+ const conflitos=[];
+ for(const nome of marcadas){
+  const d=mapa.get(nome);if(!d)continue;
+  const creditosAntes=[...marcadas].filter(n=>n!==nome).reduce((s,n)=>s+mapa.get(n).creditos,0);
+  for(const r of d.requisitos){
+   const m=r.match(/^(\d+)\s+créditos acumulados$/);
+   if(m){
+    if(creditosAntes<Number(m[1]))conflitos.push(nome+': requisito mínimo de conclusão ainda não atendido');
+   }else if(!marcadas.has(r)){
+    conflitos.push(nome+': '+r+' não está marcada como concluída');
+   }
+  }
+ }
+ return [...new Set(conflitos)];
+}
+function atualizarContagem(){
+ document.getElementById('contagem').textContent=marcadas.size+' concluídas';
+ const aviso=document.getElementById('alertaRequisitos'),conflitos=conflitosDaSelecao();
+ if(conflitos.length){
+  aviso.textContent='Conflito de pré-requisito na seleção: '+conflitos.join('; ')+'. Confira as disciplinas concluídas antes de gerar o plano.';
+  aviso.className='warning';aviso.hidden=false;
+ }else{aviso.textContent='';aviso.className='';aviso.hidden=true;}
+}
 document.getElementById('busca').addEventListener('input',renderLista);
 document.getElementById('limpar').addEventListener('click',()=>{marcadas.clear();renderLista();});
 document.getElementById('salvar').addEventListener('click',()=>{
@@ -149,7 +185,11 @@ document.getElementById('gerar').addEventListener('click',()=>{
   mensagem.textContent=restantes.length?'Grade parcial gerada. Confira as disciplinas pendentes.':'Grade completa gerada!';
   mensagem.className=restantes.length?'error':'ok';
   document.getElementById('resultado').scrollIntoView({behavior:'smooth'});
- }catch(e){mensagem.textContent='Erro: '+e.message;mensagem.className='error';}
+ }catch(e){
+  const erro=String(e&&e.message||e);
+  mensagem.textContent=/pré-requisito|ciclo/i.test(erro)?'Conflito de pré-requisito: '+erro:'Erro: '+erro;
+  mensagem.className='error';
+ }
 });
 document.getElementById('pdf').addEventListener('click',()=>{if(ultimo)window.print();});
 document.getElementById('csv').addEventListener('click',()=>{
@@ -160,6 +200,7 @@ document.getElementById('csv').addEventListener('click',()=>{
  const a=document.createElement('a');a.href=url;a.download='grade_otimizada.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 renderLista();
+mostrarAvisoMatriz();
 </script>
 <script type="module">
 import {requireRole,logout} from './auth.js';
