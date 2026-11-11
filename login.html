@@ -1,20 +1,40 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Acesso | Otimizador de Grade</title>
-<style>body{margin:0;background:#f2f6fc;color:#172d4d;font-family:system-ui,Arial,sans-serif}main{max-width:470px;margin:7vh auto;padding:18px}.card{background:white;border-radius:18px;padding:30px;box-shadow:0 8px 30px #142b5120}h1{font-size:26px;margin:0 0 8px}p{color:#5a6b80}label{display:block;margin:15px 0 5px;font-weight:600}input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #c7d2e4;border-radius:9px;font-size:16px}button{background:#245fc4;color:white;padding:13px;border:0;border-radius:9px;font-weight:700;cursor:pointer;width:100%;margin-top:18px}button:disabled{opacity:.5}.tabs{display:flex;gap:10px;margin:18px 0}.tabs button{margin:0;background:#e7eef9;color:#23446e}.tabs button.active{background:#245fc4;color:white}.hidden{display:none}.message{min-height:24px;font-weight:600;color:#a32929}small{color:#64748b}</style></head>
+<style>body{margin:0;background:#f2f6fc;color:#172d4d;font-family:system-ui,Arial,sans-serif}main{max-width:470px;margin:7vh auto;padding:18px}.card{background:white;border-radius:18px;padding:30px;box-shadow:0 8px 30px #142b5120}h1{font-size:26px;margin:0 0 8px}p{color:#5a6b80}label{display:block;margin:15px 0 5px;font-weight:600}input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #c7d2e4;border-radius:9px;font-size:16px}button{background:#245fc4;color:white;padding:13px;border:0;border-radius:9px;font-weight:700;cursor:pointer;width:100%;margin-top:18px}button:disabled{opacity:.5}.tabs{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}.tabs button{flex:1;min-width:110px;font-size:12px;margin:0;background:#e7eef9;color:#23446e}.tabs button.active{background:#245fc4;color:white}.hidden{display:none}.message{min-height:24px;font-weight:600;color:#a32929}small{color:#64748b}</style></head>
 <body><main><section class="card"><h1>Otimizador de Grade</h1><p>Acesso para alunos e professores</p>
-<div class="tabs"><button id="tabEntrar" class="active" type="button">Entrar</button><button id="tabCadastrar" type="button">Criar conta de aluno</button></div>
+<div class="tabs"><button id="tabEntrar" class="active" type="button">Entrar</button><button id="tabCadastrar" type="button">Criar conta de aluno</button><button id="tabProfessor" type="button">Solicitar acesso de professor</button></div>
 <form id="form">
 <div id="nomeBox" class="hidden"><label for="nome">Nome completo</label><input id="nome" autocomplete="name"></div>
 <label for="email">E-mail</label><input id="email" type="email" required autocomplete="email">
 <label for="senha">Senha</label><input id="senha" type="password" required minlength="8" autocomplete="current-password">
 <button id="enviar" type="submit">Entrar</button>
 </form><p class="message" id="msg" role="status"></p>
-<small>Professores entram com e-mail e senha de uma conta autorizada pela administração. O cadastro público cria somente contas de aluno.</small>
+<small>O cadastro de professor requer confirmação do e-mail e aprovação administrativa. A senha é gerenciada pelo Supabase.</small>
 </section></main>
 <script type="module">
 import {supabase,configured,currentProfile} from './auth.js';
-const $=id=>document.getElementById(id);let cadastrar=false;
-function aba(v){cadastrar=v;$('tabEntrar').classList.toggle('active',!v);$('tabCadastrar').classList.toggle('active',v);$('nomeBox').classList.toggle('hidden',!v);$('nome').required=v;$('enviar').textContent=v?'Criar conta de aluno':'Entrar';$('senha').autocomplete=v?'new-password':'current-password';$('msg').textContent='';}
-$('tabEntrar').onclick=()=>aba(false);$('tabCadastrar').onclick=()=>aba(true);
+const $=id=>document.getElementById(id);let cadastrar=false;let solicitarProfessor=false;
+function aba(tipo){
+ cadastrar=tipo!=='entrar';solicitarProfessor=tipo==='professor';
+ $('tabEntrar').classList.toggle('active',tipo==='entrar');
+ $('tabCadastrar').classList.toggle('active',tipo==='aluno');
+ $('tabProfessor').classList.toggle('active',tipo==='professor');
+ $('nomeBox').classList.toggle('hidden',!cadastrar);
+ $('nome').required=cadastrar;
+ $('enviar').textContent=tipo==='professor'?'Criar conta e solicitar aprovação':cadastrar?'Criar conta de aluno':'Entrar';
+ $('senha').autocomplete=cadastrar?'new-password':'current-password';
+ $('msg').textContent='';
+}
+$('tabEntrar').onclick=()=>aba('entrar');
+$('tabCadastrar').onclick=()=>aba('aluno');
+$('tabProfessor').onclick=()=>aba('professor');
+async function solicitarAcesso(){
+ const {data,error}=await supabase.rpc('solicitar_acesso_professor');
+ if(error)throw error;
+ let aviso='Solicitação registrada. Aguarde a aprovação da administração.';
+ const {error:notifyError}=await supabase.functions.invoke('notificar-solicitacao',{body:{request_id:data}});
+ if(notifyError)aviso+=' O aviso automático por e-mail não foi confirmado; a solicitação está disponível no painel administrativo.';
+ return aviso;
+}
 $('form').addEventListener('submit',async e=>{
  e.preventDefault();$('msg').textContent='Aguarde...';$('enviar').disabled=true;
  try{
@@ -24,13 +44,38 @@ $('form').addEventListener('submit',async e=>{
    const nome=$('nome').value.trim();if(nome.length<2)throw new Error('Informe seu nome completo.');
    const {data,error}=await supabase.auth.signUp({email,password,options:{data:{nome}}});
    if(error)throw error;
-   if(!data.session){$('msg').style.color='#176b49';$('msg').textContent='Conta criada. Verifique seu e-mail para confirmar o cadastro antes de entrar.';return;}
+   if(!data.session){
+    $('msg').style.color='#176b49';
+    $('msg').textContent=solicitarProfessor
+      ?'Conta criada. Confirme seu e-mail, entre com sua senha e envie a solicitação de professor.'
+      :'Conta criada. Verifique seu e-mail para confirmar o cadastro antes de entrar.';
+    return;
+   }
+   if(solicitarProfessor){
+    $('msg').style.color='#176b49';$('msg').textContent=await solicitarAcesso();return;
+   }
   }else{
    const {error}=await supabase.auth.signInWithPassword({email,password});
    if(error)throw error;
   }
   const p=await currentProfile();if(!p)throw new Error('Perfil ainda não disponível. Confirme o e-mail e tente novamente.');
-  location.replace(p.role==='professor'?'./professor.html':'./index.html');
+  if(!cadastrar&&p.role==='aluno'){
+   const {data:request,error:reqError}=await supabase.from('solicitacoes_professor').select('id,status,notification_sent_at').eq('user_id',p.id).maybeSingle();
+   if(reqError&&reqError.code!=='42P01')throw reqError;
+   if(request?.status==='pendente'){
+    $('msg').style.color='#176b49';
+    $('msg').textContent='Sua solicitação de professor está pendente de aprovação.';
+    if(!request.notification_sent_at){
+     const {error:notifyError}=await supabase.functions.invoke('notificar-solicitacao',{body:{request_id:request.id}});
+     if(notifyError)$('msg').textContent+=' O aviso por e-mail ainda não foi confirmado.';
+    }
+    return;
+   }
+   if(request?.status==='rejeitada'){
+    $('msg').textContent='Sua solicitação de professor foi rejeitada. Contate a administração.';return;
+   }
+  }
+  location.replace(p.role==='admin'?'./admin.html':p.role==='professor'?'./professor.html':'./index.html');
  }catch(err){$('msg').style.color='#a32929';$('msg').textContent=err.message;}finally{$('enviar').disabled=false;}
 });
 </script></body></html>
