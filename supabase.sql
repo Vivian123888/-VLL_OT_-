@@ -9,6 +9,8 @@ create table if not exists public.profiles (
 alter table public.profiles enable row level security;
 drop policy if exists "Ler proprio perfil" on public.profiles;
 create policy "Ler proprio perfil" on public.profiles for select to authenticated using (id = (select auth.uid()));
+-- Table privileges are combined with RLS: users can read only their own profile.
+grant select on public.profiles to authenticated;
 -- Não existe política de UPDATE para profiles: aluno não pode se promover a professor.
 create or replace function public.criar_perfil()
 returns trigger language plpgsql security definer set search_path = '' as $$
