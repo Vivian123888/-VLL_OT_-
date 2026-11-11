@@ -1,0 +1,37 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Área do Professor | Otimizador</title>
+<style>body{margin:0;background:#f3f6fc;color:#1b2e49;font-family:system-ui,Arial}header{background:#162d54;color:white;padding:24px max(20px,calc((100vw - 1000px)/2));display:flex;justify-content:space-between;gap:10px;align-items:center}main{max-width:1000px;margin:25px auto;padding:0 18px}.card{background:white;padding:24px;border-radius:14px;box-shadow:0 5px 20px #142b5112;margin-bottom:18px}h1{font-size:25px;margin:0}h2{margin-top:0}label{display:block;margin:12px 0 5px;font-weight:600}input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #c6d2e5;border-radius:8px;font-size:16px}button{background:#245fc4;color:white;border:0;border-radius:8px;padding:12px 17px;cursor:pointer;font-weight:700}button:disabled{opacity:.5}.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}table{width:100%;border-collapse:collapse}th,td{padding:12px;text-align:left;border-bottom:1px solid #e2e8f0}#msg{font-weight:600} .scroll{overflow-x:auto}</style></head>
+<body><header><h1>Área do Professor</h1><button id="sair">Sair</button></header><main>
+<section class="card"><h2>Cadastro e acompanhamento de alunos</h2><p id="boasVindas"></p>
+<form id="form"><div class="fields"><div><label for="nome">Nome do aluno</label><input id="nome" required maxlength="150"></div><div><label for="matricula">Matrícula</label><input id="matricula" required maxlength="40"></div><div><label for="periodo">Período atual</label><input id="periodo" type="number" min="1" max="30" required></div></div>
+<button id="salvar" type="submit" style="margin-top:18px">Adicionar aluno</button></form><p id="msg" role="status"></p></section>
+<section class="card"><h2>Alunos cadastrados por você</h2><div class="scroll"><table><thead><tr><th>Nome</th><th>Matrícula</th><th>Período</th><th>Cadastro</th></tr></thead><tbody id="linhas"></tbody></table></div></section>
+</main><script type="module">
+import {supabase,requireRole,logout} from './auth.js';
+const $=id=>document.getElementById(id);$('sair').onclick=logout;
+const perfil=await requireRole('professor');
+if(perfil){
+ $('boasVindas').textContent='Bem-vindo(a), '+perfil.nome+'. Cadastre o nome, a matrícula e o período dos alunos.';
+ async function carregar(){
+  const {data,error}=await supabase.from('alunos_acompanhados').select('nome,matricula,periodo,created_at').order('created_at',{ascending:false});
+  if(error){$('msg').textContent=error.message;return;}
+  $('linhas').replaceChildren();
+  for(const d of data){
+   const tr=document.createElement('tr');
+   for(const valor of [d.nome,d.matricula,d.periodo,new Date(d.created_at).toLocaleDateString('pt-BR')]){
+    const td=document.createElement('td');td.textContent=String(valor);tr.append(td);
+   }$('linhas').append(tr);
+  }
+ }
+ $('form').addEventListener('submit',async e=>{
+  e.preventDefault();$('salvar').disabled=true;$('msg').textContent='Salvando...';
+  try{
+   const nome=$('nome').value.trim(),matricula=$('matricula').value.trim(),periodo=Number($('periodo').value);
+   if(!nome||!matricula||!Number.isInteger(periodo)||periodo<1||periodo>30)throw Error('Confira os campos.');
+   const {error}=await supabase.from('alunos_acompanhados').insert({nome,matricula,periodo,professor_id:perfil.id});
+   if(error)throw error;
+   $('form').reset();$('msg').textContent='Aluno cadastrado com sucesso.';await carregar();
+  }catch(err){$('msg').textContent='Erro: '+err.message;}finally{$('salvar').disabled=false;}
+ });
+ await carregar();
+}
+</script></body></html>
