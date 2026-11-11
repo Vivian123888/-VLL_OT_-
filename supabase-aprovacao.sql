@@ -1,7 +1,12 @@
 -- Execute no SQL Editor do Supabase, após a versão anterior de supabase.sql.
--- Contas novas continuam com role='aluno'; apenas RPC administrativa promove professores.
+-- A confirmação de e-mail está desligada: contas ativas podem solicitar acesso.
 alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles add constraint profiles_role_check check (role in ('aluno','professor','admin'));
+
+-- Remover dados de alunos vinculados quando a administração exclui uma conta de professor.
+alter table public.alunos_acompanhados drop constraint if exists alunos_acompanhados_professor_id_fkey;
+alter table public.alunos_acompanhados add constraint alunos_acompanhados_professor_id_fkey
+ foreign key (professor_id) references public.profiles(id) on delete cascade;
 
 create table if not exists public.solicitacoes_professor (
  id uuid primary key default gen_random_uuid(),
@@ -24,7 +29,6 @@ for select to authenticated using (
  user_id=(select auth.uid()) or exists(
  select 1 from public.profiles where id=(select auth.uid()) and role='admin'));
 
--- Solicitação autenticada; e-mail é lido do auth.users, nunca confiado ao navegador.
 create or replace function public.solicitar_acesso_professor()
 returns uuid language plpgsql security definer set search_path = ''
 as $$
@@ -32,8 +36,8 @@ declare uid uuid := auth.uid(); request_id uuid; user_email text; user_name text
 begin
  if uid is null then raise exception 'Autenticação obrigatória'; end if;
  select email,coalesce(nullif(trim(raw_user_meta_data->>'nome'),''),'Usuário')
- into user_email,user_name from auth.users where id=uid and email_confirmed_at is not null;
- if user_email is null then raise exception 'Confirme seu e-mail antes de solicitar'; end if;
+ into user_email,user_name from auth.users where id=uid;
+ if user_email is null then raise exception 'Conta autenticada não encontrada'; end if;
  if exists(select 1 from public.profiles where id=uid and role in ('admin','professor')) then
   raise exception 'Conta já autorizada';
  end if;
@@ -41,7 +45,6 @@ begin
  values(uid,user_name,user_email)
  on conflict(user_id) do update set
   nome=excluded.nome,email=excluded.email
-  -- Rejeições não são automaticamente revertidas; aprovação não pode ser alterada aqui.
   where public.solicitacoes_professor.status='pendente'
  returning id into request_id;
  if request_id is null then raise exception 'Solicitação já analisada'; end if;
@@ -50,7 +53,6 @@ end $$;
 revoke all on function public.solicitar_acesso_professor() from public,anon;
 grant execute on function public.solicitar_acesso_professor() to authenticated;
 
--- Apenas administradores podem consultar a fila completa.
 create or replace function public.listar_solicitacoes_professor()
 returns table(id uuid,nome text,email text,status text,created_at timestamptz,reviewed_at timestamptz)
 language plpgsql security definer set search_path = ''
@@ -88,9 +90,6 @@ end $$;
 revoke all on function public.analisar_solicitacao_professor(uuid,boolean) from public,anon;
 grant execute on function public.analisar_solicitacao_professor(uuid,boolean) to authenticated;
 
--- EXECUTE ESTA ETAPA MANUALMENTE COM ACESSO ADMINISTRATIVO NO SQL EDITOR.
--- A conta precisa ter sido criada e seu e-mail confirmado no Supabase Auth.
--- Nunca transforme usuários em administradores a partir do JavaScript.
+-- Conta administrativa criada anteriormente. Execute apenas para conceder o papel de administradora:
 -- update public.profiles set role='admin'
--- where id=(select id from auth.users
---           where lower(email)='vivianlauriano02@gmail.com' and email_confirmed_at is not null);
+-- where id=(select id from auth.users where lower(email)='vivianlauriano02@gmail.com');
