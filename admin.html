@@ -1,27 +1,44 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Administração | Otimizador de Grade</title>
-<style>body{font-family:system-ui,Arial;background:#f2f6fc;color:#172b49;margin:0}header{background:#152c52;color:white;padding:24px max(18px,calc((100vw - 1060px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}h1{font-size:25px;margin:0}main{max-width:1060px;margin:28px auto;padding:0 18px}.card{background:white;padding:24px;border-radius:15px;box-shadow:0 6px 24px #142b5114}button{border:0;background:#245fc4;color:white;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}button:disabled{opacity:.5}.reject{background:#a22d37}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid #e1e8f0;font-size:14px}.scroll{overflow-x:auto}.actions{display:flex;gap:8px;flex-wrap:wrap}#msg{min-height:22px}small{color:#637189}</style></head>
-<body><header><h1>Administração · Solicitações de professores</h1><button id="sair">Sair</button></header>
-<main><section class="card"><p id="saudacao"></p><p>Analise os pedidos de acesso. A aprovação libera o painel de professores para a conta solicitante.</p><p id="msg" role="status"></p>
+<style>
+body{font-family:system-ui,Arial;background:#f2f6fc;color:#172b49;margin:0}
+header{background:#152c52;color:white;padding:24px max(18px,calc((100vw - 1060px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:25px;margin:0}main{max-width:1060px;margin:28px auto;padding:0 18px}.card{background:white;padding:24px;border-radius:15px;box-shadow:0 6px 24px #142b5114}
+button{border:0;background:#245fc4;color:white;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}button:disabled{opacity:.5}
+.reject,.delete{background:#a22d37}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid #e1e8f0;font-size:14px}
+.scroll{overflow-x:auto}.actions{display:flex;gap:8px;flex-wrap:wrap}.nav{display:flex;gap:8px;margin-bottom:18px}.nav button{background:#e7eef9;color:#23446e}.nav button.active{background:#245fc4;color:#fff}
+#msg{min-height:22px}small{color:#637189}.hidden{display:none}
+</style></head>
+<body><header><h1>Administração · Otimizador de Grade</h1><button id="sair">Sair</button></header>
+<main><p id="saudacao"></p><nav class="nav" aria-label="Seções administrativas"><button id="navPedidos" class="active" type="button">Solicitações de professores</button><button id="navUsuarios" type="button">Usuários</button></nav>
+<section id="secPedidos" class="card"><h2>Solicitações de professores</h2><p>Analise os pedidos de acesso. A aprovação libera o painel de professores para a conta solicitante.</p><p id="msgPedidos" role="status"></p>
 <div class="scroll"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Solicitado em</th><th>Status</th><th>Ação</th></tr></thead><tbody id="pedidos"></tbody></table></div>
-<small>A notificação por e-mail serve como aviso. A aprovação ocorre somente aqui, após autenticação administrativa.</small>
+<small>O pedido fica registrado aqui mesmo se o envio de e-mail ainda não estiver configurado.</small></section>
+<section id="secUsuarios" class="card hidden"><h2>Contas de usuário</h2><p>Veja as contas cadastradas. A exclusão remove a conta e os registros de alunos vinculados ao professor.</p><p id="msgUsuarios" role="status"></p>
+<div class="scroll"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Criado em</th><th>Último acesso</th><th>Ação</th></tr></thead><tbody id="usuarios"></tbody></table></div>
 </section></main>
 <script type="module">
 import {supabase,requireRole,logout} from './auth.js';
 const $=id=>document.getElementById(id);$('sair').onclick=logout;
 const perfil=await requireRole('admin');
+function abrir(secao){
+ const pedidos=secao==='pedidos';
+ $('secPedidos').classList.toggle('hidden',!pedidos);$('secUsuarios').classList.toggle('hidden',pedidos);
+ $('navPedidos').classList.toggle('active',pedidos);$('navUsuarios').classList.toggle('active',!pedidos);
+}
+$('navPedidos').onclick=()=>abrir('pedidos');$('navUsuarios').onclick=()=>abrir('usuarios');
 if(perfil){
  $('saudacao').textContent='Bem-vindo(a), '+perfil.nome+'.';
- async function carregar(){
+ async function carregarPedidos(){
   const {data,error}=await supabase.rpc('listar_solicitacoes_professor');
-  if(error){$('msg').textContent='Erro: '+error.message;return;}
+  if(error){$('msgPedidos').textContent='Erro ao carregar pedidos: '+error.message;return;}
   $('pedidos').replaceChildren();
-  if(!data.length){$('msg').textContent='Nenhuma solicitação encontrada.';return;}
-  $('msg').textContent=data.filter(x=>x.status==='pendente').length+' solicitação(ões) pendente(s).';
+  if(!data?.length){$('msgPedidos').textContent='Nenhuma solicitação encontrada.';return;}
+  $('msgPedidos').textContent=data.filter(x=>x.status==='pendente').length+' solicitação(ões) pendente(s).';
   for(const pedido of data){
    const tr=document.createElement('tr');
    for(const v of [pedido.nome,pedido.email,new Date(pedido.created_at).toLocaleString('pt-BR'),pedido.status]){
-    const td=document.createElement('td');td.textContent=String(v);tr.append(td);
+    const td=document.createElement('td');td.textContent=String(v??'');tr.append(td);
    }
    const td=document.createElement('td');
    if(pedido.status==='pendente'){
@@ -32,14 +49,43 @@ if(perfil){
       if(!confirm((approve?'Aprovar':'Rejeitar')+' acesso de '+pedido.nome+'?'))return;
       actions.querySelectorAll('button').forEach(b=>b.disabled=true);
       const {error}=await supabase.rpc('analisar_solicitacao_professor',{p_id:pedido.id,p_aprovar:approve});
-      if(error){$('msg').textContent='Erro: '+error.message;actions.querySelectorAll('button').forEach(b=>b.disabled=false);}
-      else await carregar();
+      if(error){$('msgPedidos').textContent='Erro: '+error.message;actions.querySelectorAll('button').forEach(b=>b.disabled=false);}
+      else await carregarPedidos();
      };actions.append(btn);
-    }td.append(actions);
+    }
+    td.append(actions);
    }else td.textContent='Analisada';
    tr.append(td);$('pedidos').append(tr);
   }
  }
- await carregar();
+ async function carregarUsuarios(){
+  $('msgUsuarios').textContent='Carregando contas...';
+  const {data,error}=await supabase.functions.invoke('admin-usuarios',{body:{action:'list'}});
+  if(error){$('msgUsuarios').textContent='Não foi possível carregar os usuários. A função administrativa precisa estar implantada no Supabase.';return;}
+  $('usuarios').replaceChildren();
+  const users=data?.users||[];
+  if(!users.length){$('msgUsuarios').textContent='Nenhuma conta encontrada.';return;}
+  $('msgUsuarios').textContent=users.length+' conta(s).';
+  for(const user of users){
+   const tr=document.createElement('tr');
+   for(const value of [user.nome||'—',user.email||'—',user.role||'sem perfil',user.created_at?new Date(user.created_at).toLocaleString('pt-BR'):'—',user.last_sign_in_at?new Date(user.last_sign_in_at).toLocaleString('pt-BR'):'Nunca']){
+    const td=document.createElement('td');td.textContent=value;tr.append(td);
+   }
+   const td=document.createElement('td');
+   if(user.role!=='admin'){
+    const button=document.createElement('button');button.className='delete';button.textContent='Excluir';
+    button.onclick=async()=>{
+     if(!confirm('Excluir a conta de '+(user.email||user.nome)+'? A ação remove a conta e os registros de alunos vinculados.'))return;
+     button.disabled=true;$('msgUsuarios').textContent='Excluindo conta...';
+     const {error}=await supabase.functions.invoke('admin-usuarios',{body:{action:'delete',user_id:user.id}});
+     if(error){$('msgUsuarios').textContent='Não foi possível excluir esta conta.';button.disabled=false;return;}
+     await carregarUsuarios();
+    };
+    td.append(button);
+   }else td.textContent=user.id===perfil.id?'Administrador atual':'Administrador protegido';
+   tr.append(td);$('usuarios').append(tr);
+  }
+ }
+ await Promise.all([carregarPedidos(),carregarUsuarios()]);
 }
 </script></body></html>
