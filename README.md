@@ -50,3 +50,59 @@ O site usa [Supabase](https://supabase.com) para autenticação real e armazenam
 **Privacidade:** o nome, a matrícula e o período dos alunos são dados pessoais. Informe aos usuários a finalidade do cadastro e mantenha o acesso restrito. O painel atualmente permite ao professor ver somente os alunos que ele mesmo cadastrou. O cadastro de um aluno pelo professor **não vincula automaticamente** a matrícula à conta criada pelo aluno; essa associação exige uma etapa adicional com verificação de identidade.
 
 **Importante:** o arquivo `index.html` contém a interface e os dados públicos da matriz. O bloqueio de acesso é implementado pela autenticação da página; os dados protegidos dos professores permanecem no Supabase sob políticas RLS.
+
+## Aprovação de professores e notificações por e-mail
+
+**Implementação no código concluída, mas depende de ativação manual dos serviços externos.** O administrador designado é **vivianlauriano02@gmail.com**.
+
+### 1. Criar a conta de administrador
+
+1. Configure o Supabase conforme as etapas anteriores.
+2. Crie uma conta de aluno com o e-mail **vivianlauriano02@gmail.com** e confirme o e-mail.
+3. No **SQL Editor**, execute [supabase-aprovacao.sql](./supabase-aprovacao.sql), que cria a tabela de solicitações e as funções protegidas.
+4. Execute, **apenas no SQL Editor com privilégios administrativos**, o comando abaixo. A promoção só ocorrerá se a conta já existir e tiver e-mail confirmado:
+
+```sql
+update public.profiles set role='admin'
+where id=(select id from auth.users
+          where lower(email)='vivianlauriano02@gmail.com' and email_confirmed_at is not null);
+```
+
+O endereço de e-mail sozinho não dá privilégios: a promoção é uma operação administrativa no banco. **Não coloque essa instrução em código executado no navegador.**
+
+### 2. Envio automático de e-mails
+
+1. Crie uma conta no [Resend](https://resend.com), verifique um domínio remetente e obtenha uma API key.
+2. No projeto Supabase, configure os segredos da Edge Function: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (ex.: `Notificacoes <avisos@seudominio.com>`) e `ADMIN_EMAIL=vivianlauriano02@gmail.com`. **Não coloque esses segredos no GitHub Pages, nem em `supabase-config.js`.**
+3. Publique a função em [supabase/functions/notificar-solicitacao/index.ts](./supabase/functions/notificar-solicitacao/index.ts). Com o [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started), a partir da raiz do repositório:
+
+```bash
+supabase login
+supabase link --project-ref SEU_PROJECT_REF
+supabase secrets set RESEND_API_KEY=SUA_CHAVE RESEND_FROM_EMAIL=avisos@seudominio.com ADMIN_EMAIL=vivianlauriano02@gmail.com
+supabase functions deploy notificar-solicitacao
+```
+
+O Supabase disponibiliza automaticamente as variáveis `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` para Edge Functions hospedadas. Mantenha a verificação JWT habilitada.
+
+**Atenção:** se você usar apenas um endereço de testes do Resend, pode haver restrições de destinatários. Verifique o domínio remetente para notificações de produção.
+
+### 3. Fluxo de uso
+
+- **Professor:** abre `login.html`, escolhe **Solicitar acesso de professor**, informa nome/e-mail/senha e confirma o e-mail. Na próxima entrada, o sistema registra a solicitação e chama a função de notificação. Também é possível solicitar usando uma conta existente.
+- **Administrador:** recebe e-mail de aviso e entra em `admin.html` para aprovar ou rejeitar. A notificação **não contém um link de aprovação sem autenticação**.
+- **Professor aprovado:** passa a ter o perfil `professor` e é direcionado ao painel `professor.html`.
+- **Aluno:** continua com o perfil `aluno` e acessa o otimizador normalmente.
+
+As funções SQL validam a identidade pelo Supabase Auth; o navegador não pode atribuir a si mesmo a função de professor ou administrador. Solicitações são únicas por usuário, e a Edge Function limita reenvios do mesmo aviso.
+
+### 4. Testes de aceitação
+
+1. Cadastre um aluno comum e verifique que não acessa `admin.html` nem `professor.html`.
+2. Solicite uma conta de professor, confirme o e-mail e faça login. Verifique o status **pendente**.
+3. Confirme que o e-mail chegou à caixa de **vivianlauriano02@gmail.com** (e verifique logs da função se não chegar).
+4. Entre como administrador e aprove a solicitação em `admin.html`.
+5. Faça novo login com a conta aprovada e confirme o acesso ao painel de professor.
+6. Repita com outra conta e rejeite para confirmar que ela não ganha acesso.
+
+**Limite:** a publicação do código no GitHub não cria automaticamente um projeto Supabase, não define os segredos do Resend e não envia e-mails antes da configuração acima.
