@@ -4,24 +4,44 @@
 <section class="card"><h2>Cadastro e acompanhamento de alunos</h2><p id="boasVindas"></p>
 <form id="form"><div class="fields"><div><label for="nome">Nome do aluno</label><input id="nome" required maxlength="150"></div><div><label for="matricula">Matrícula</label><input id="matricula" required maxlength="40"></div><div><label for="periodo">Período atual</label><input id="periodo" type="number" min="1" max="30" required></div></div>
 <button id="salvar" type="submit" style="margin-top:18px">Adicionar aluno</button></form><p id="msg" role="status"></p></section>
-<section class="card"><h2>Alunos cadastrados por você</h2><div class="scroll"><table><thead><tr><th>Nome</th><th>Matrícula</th><th>Período</th><th>Cadastro</th></tr></thead><tbody id="linhas"></tbody></table></div></section>
+<section class="card"><h2>Alunos cadastrados por você</h2><div class="scroll"><table><thead><tr><th>Nome</th><th>Matrícula</th><th>Período</th><th>Cadastro</th></tr></thead><tbody id="linhas"></tbody></table></div>
+<div class="actions" aria-label="Paginação de alunos">
+<button id="alunosAnterior" type="button" disabled>Anterior</button>
+<span id="alunosPagina">Página 1</span>
+<button id="alunosProxima" type="button" disabled>Próxima</button>
+</div></section>
 </main><script type="module">
 import {supabase,requireRole,logout} from './auth.js';
 const $=id=>document.getElementById(id);$('sair').onclick=logout;
 const perfil=await requireRole('professor');
 if(perfil){
  $('boasVindas').textContent='Bem-vindo(a), '+perfil.nome+'. Cadastre o nome, a matrícula e o período dos alunos.';
+ const TAMANHO_PAGINA_ALUNOS=50;
+ let paginaAlunos=0, alunosTemProxima=false;
+ $('alunosAnterior').onclick=()=>{if(paginaAlunos>0){paginaAlunos--;void carregar();}};
+ $('alunosProxima').onclick=()=>{if(alunosTemProxima){paginaAlunos++;void carregar();}};
  async function carregar(){
-  const {data,error}=await supabase.from('alunos_acompanhados').select('nome,matricula,periodo,created_at').order('created_at',{ascending:false});
-  if(error){$('msg').textContent=error.message;return;}
+  $('alunosAnterior').disabled=true;$('alunosProxima').disabled=true;
+  const inicio=paginaAlunos*TAMANHO_PAGINA_ALUNOS;
+  const {data,error}=await supabase.from('alunos_acompanhados')
+   .select('id,nome,matricula,periodo,created_at')
+   .order('created_at',{ascending:false}).order('id',{ascending:false})
+   .range(inicio,inicio+TAMANHO_PAGINA_ALUNOS);
+  if(error){$('msg').textContent='Não foi possível carregar os alunos.';return;}
+  const registros=data||[];
+  alunosTemProxima=registros.length>TAMANHO_PAGINA_ALUNOS;
   $('linhas').replaceChildren();
-  for(const d of data){
+  for(const d of registros.slice(0,TAMANHO_PAGINA_ALUNOS)){
    const tr=document.createElement('tr');
    for(const valor of [d.nome,d.matricula,d.periodo,new Date(d.created_at).toLocaleDateString('pt-BR')]){
     const td=document.createElement('td');td.textContent=String(valor);tr.append(td);
    }$('linhas').append(tr);
   }
+  $('alunosPagina').textContent='Página '+(paginaAlunos+1);
+  $('alunosAnterior').disabled=paginaAlunos===0;
+  $('alunosProxima').disabled=!alunosTemProxima;
  }
+
  $('form').addEventListener('submit',async e=>{
   e.preventDefault();$('salvar').disabled=true;$('msg').textContent='Salvando...';
   try{
@@ -29,7 +49,7 @@ if(perfil){
    if(!nome||!matricula||!Number.isInteger(periodo)||periodo<1||periodo>30)throw Error('Confira os campos.');
    const {error}=await supabase.from('alunos_acompanhados').insert({nome,matricula,periodo,professor_id:perfil.id});
    if(error)throw error;
-   $('form').reset();$('msg').textContent='Aluno cadastrado com sucesso.';await carregar();
+   $('form').reset();paginaAlunos=0;$('msg').textContent='Aluno cadastrado com sucesso.';await carregar();
   }catch(err){$('msg').textContent='Erro: '+err.message;}finally{$('salvar').disabled=false;}
  });
  await carregar();
