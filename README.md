@@ -32,6 +32,20 @@ O site usa Supabase para autenticação e armazenamento protegido. A configuraç
 
 A única forma de conceder os papéis `professor` e `admin` é por rotinas protegidas ou operações administrativas no banco. O navegador não pode promover uma conta. O painel administrativo impede excluir a própria conta e protege outras contas administrativas. Ao excluir um professor, os registros de alunos vinculados também são removidos.
 
+
+## Paginação e ajustes de escala
+
+O painel administrativo consulta usuários em páginas de 50, e o painel do professor consulta até 50 alunos por página. A função administrativa e os índices ainda precisam estar aplicados no projeto Supabase para que a paginação seja feita no servidor.
+
+1. Execute `supabase-escala.sql` no SQL Editor do projeto, após os scripts principais.
+2. Implante a versão atualizada da função administrativa a partir da raiz do repositório:
+
+```sh
+supabase functions deploy admin-usuarios
+```
+
+Até a função ser implantada, o painel administrativo exibe um aviso e pagina localmente os resultados que o endpoint antigo retornar. Para mais de 10 mil contas, a versão antiga continua limitada; a atualização da função é necessária.
+
 ## Configuração administrativa e funções
 
 A conta administradora deve existir em Supabase Auth. Depois de executar [supabase-aprovacao.sql](./supabase-aprovacao.sql), conceda o papel no SQL Editor, substituindo `admin@example.com` pelo endereço da conta:
