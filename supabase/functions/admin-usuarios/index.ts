@@ -24,23 +24,25 @@ Deno.serve(async req=>{
   if(profileError||profile?.role!=='admin')return json(403,{error:'Acesso negado'});
   const body=await req.json();
   if(body?.action==='list'){
-   const all=[];
-   for(let page=1;page<=100;page++){
-    const {data,error}=await db.auth.admin.listUsers({page,perPage:100});
-    if(error)return json(500,{error:'Não foi possível listar as contas'});
-    const batch=data?.users||[];all.push(...batch);
-    if(batch.length<100)break;
+   const page=Number(body.page??1);
+   const perPage=Number(body.per_page??50);
+   if(!Number.isInteger(page)||page<1||page>100000
+      ||!Number.isInteger(perPage)||perPage<1||perPage>100){
+    return json(400,{error:'Parâmetros de paginação inválidos'});
    }
-   const ids=all.map(x=>x.id);
+   const {data,error}=await db.auth.admin.listUsers({page,perPage});
+   if(error)return json(500,{error:'Não foi possível listar as contas'});
+   const batch=data?.users||[];
+   const ids=batch.map(x=>x.id);
    const {data:profiles,error:profilesError}=ids.length
     ?await db.from('profiles').select('id,nome,role').in('id',ids)
     :{data:[],error:null};
    if(profilesError)return json(500,{error:'Não foi possível carregar os perfis'});
    const byId=new Map((profiles||[]).map(p=>[p.id,p]));
-   return json(200,{users:all.map(x=>{const p=byId.get(x.id)||{};return{
+   return json(200,{users:batch.map(x=>{const p=byId.get(x.id)||{};return{
     id:x.id,email:x.email||'',created_at:x.created_at||null,last_sign_in_at:x.last_sign_in_at||null,
     nome:p.nome||x.user_metadata?.nome||'',role:p.role||''
-   };})});
+   };}),page,perPage,hasMore:batch.length===perPage});
   }
   if(body?.action==='delete'){
    const id=body.user_id;
