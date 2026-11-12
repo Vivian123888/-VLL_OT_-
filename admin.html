@@ -15,6 +15,11 @@ button{border:0;background:#245fc4;color:white;padding:10px 14px;border-radius:8
 <div class="scroll"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Solicitado em</th><th>Status</th><th>Ação</th></tr></thead><tbody id="pedidos"></tbody></table></div>
 <small>O pedido fica registrado aqui mesmo se o envio de e-mail ainda não estiver configurado.</small></section>
 <section id="secUsuarios" class="card hidden"><h2>Contas de usuário</h2><p>Veja as contas cadastradas. A exclusão remove a conta e os registros de alunos vinculados ao professor.</p><p id="msgUsuarios" role="status"></p>
+<div class="actions" aria-label="Paginação de contas">
+<button id="usuariosAnterior" type="button" disabled>Anterior</button>
+<span id="usuariosPagina">Página 1</span>
+<button id="usuariosProxima" type="button" disabled>Próxima</button>
+</div>
 <div class="scroll"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Criado em</th><th>Último acesso</th><th>Ação</th></tr></thead><tbody id="usuarios"></tbody></table></div>
 </section></main>
 <script type="module">
@@ -58,14 +63,49 @@ if(perfil){
    tr.append(td);$('pedidos').append(tr);
   }
  }
+ let paginaUsuarios=1, usuariosTemProxima=false, usuariosCarregados=false;
+ let ultimaPaginaConhecida=null;
+ const TAMANHO_PAGINA_USUARIOS=50;
  async function carregarUsuarios(){
+  $('usuariosAnterior').disabled=true;$('usuariosProxima').disabled=true;
   $('msgUsuarios').textContent='Carregando contas...';
-  const {data,error}=await supabase.functions.invoke('admin-usuarios',{body:{action:'list'}});
-  if(error){$('msgUsuarios').textContent='Não foi possível carregar os usuários. A função administrativa precisa estar implantada no Supabase.';return;}
+  const {data,error}=await supabase.functions.invoke('admin-usuarios',{
+   body:{action:'list',page:paginaUsuarios,per_page:TAMANHO_PAGINA_USUARIOS}
+  });
+  if(error){
+   usuariosCarregados=false;
+   $('msgUsuarios').textContent='Não foi possível carregar os usuários. Confira a implantação da função administrativa.';
+   $('usuariosPagina').textContent='Página '+paginaUsuarios;
+   $('usuariosAnterior').disabled=paginaUsuarios<=1;
+   return;
+  }
+  let users=data?.users||[];
+  const paginacaoServidor=typeof data?.hasMore==='boolean';
+  if(paginacaoServidor){
+   usuariosTemProxima=data.hasMore;
+  }else{
+   const inicio=(paginaUsuarios-1)*TAMANHO_PAGINA_USUARIOS;
+   usuariosTemProxima=users.length>inicio+TAMANHO_PAGINA_USUARIOS;
+   users=users.slice(inicio,inicio+TAMANHO_PAGINA_USUARIOS);
+  }
+  if(!users.length&&paginaUsuarios>1&&paginacaoServidor){
+   ultimaPaginaConhecida=paginaUsuarios-1;
+   paginaUsuarios--;
+   return carregarUsuarios();
+  }
   $('usuarios').replaceChildren();
-  const users=data?.users||[];
-  if(!users.length){$('msgUsuarios').textContent='Nenhuma conta encontrada.';return;}
-  $('msgUsuarios').textContent=users.length+' conta(s).';
+  if(!users.length){
+   $('msgUsuarios').textContent='Nenhuma conta nesta página.';
+   $('usuariosPagina').textContent='Página '+paginaUsuarios;
+   $('usuariosAnterior').disabled=paginaUsuarios<=1;
+   $('usuariosProxima').disabled=true;
+   usuariosCarregados=true;
+   return;
+  }
+  $('msgUsuarios').textContent=paginacaoServidor
+   ?users.length+' conta(s) nesta página.'
+   :'Atualize a função admin-usuarios para paginar no servidor. Exibindo página local dos resultados atuais.';
+  $('usuariosPagina').textContent='Página '+paginaUsuarios;
   for(const user of users){
    const tr=document.createElement('tr');
    for(const value of [user.nome||'—',user.email||'—',user.role||'sem perfil',user.created_at?new Date(user.created_at).toLocaleString('pt-BR'):'—',user.last_sign_in_at?new Date(user.last_sign_in_at).toLocaleString('pt-BR'):'Nunca']){
@@ -85,7 +125,15 @@ if(perfil){
    }else td.textContent=user.id===perfil.id?'Administrador atual':'Administrador protegido';
    tr.append(td);$('usuarios').append(tr);
   }
+  usuariosCarregados=true;
+  if(ultimaPaginaConhecida!==null&&paginaUsuarios>=ultimaPaginaConhecida)usuariosTemProxima=false;
+  $('usuariosAnterior').disabled=paginaUsuarios<=1;
+  $('usuariosProxima').disabled=!usuariosTemProxima;
  }
- await Promise.all([carregarPedidos(),carregarUsuarios()]);
+ $('usuariosAnterior').onclick=()=>{if(paginaUsuarios>1){paginaUsuarios--;void carregarUsuarios();}};
+ $('usuariosProxima').onclick=()=>{if(usuariosTemProxima){paginaUsuarios++;void carregarUsuarios();}};
+ $('navUsuarios').onclick=()=>{abrir('usuarios');if(!usuariosCarregados)void carregarUsuarios();};
+
+ await carregarPedidos();
 }
 </script></body></html>
