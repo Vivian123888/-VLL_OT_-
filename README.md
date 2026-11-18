@@ -1,4 +1,4 @@
-# Otimizador de Grade Curricular — Engenharia de Produção
+# Otimizador de Grade Acadêmica — Engenharia de Produção
 
 Aplicação web para planejamento de disciplinas da matriz 2026, com autenticação Supabase para alunos, professores e administradora.
 
@@ -13,12 +13,14 @@ Aplicação web para planejamento de disciplinas da matriz 2026, com autenticaç
 - Marque as disciplinas já concluídas, defina o limite de períodos e clique em **Gerar plano de estudos**.
 - A grade é calculada por uma heurística e deve ser validada com a coordenação.
 - A seleção de disciplinas concluídas fica no navegador do aluno.
+- Professores aprovados também podem consultar a matriz, gerar uma grade e salvar o resultado em PDF.
 
 ## Login e permissões
 
 O site usa Supabase para autenticação e armazenamento protegido. A configuração do projeto fica em [supabase-config.js](./supabase-config.js), com URL e chave publicável. Nunca exponha uma chave secreta ou `service_role` no GitHub Pages.
 
-- Em **Authentication > URL Configuration**, configure a URL de login do GitHub Pages e os redirecionamentos permitidos.
+- Em **Authentication > URL Configuration**, configure a URL de login do GitHub Pages e os redirecionamentos permitidos. O mesmo endereço de `login.html` é usado no retorno do link de recuperação de senha.
+- Em **Authentication > Providers > Email**, configure o envio de e-mails para que os links de recuperação cheguem aos usuários.
 - Em **Authentication > Providers > Email**, mantenha o cadastro habilitado e deixe **Confirm email** desligado para que alunos possam entrar sem confirmação.
 - [supabase.sql](./supabase.sql) cria perfis e regras RLS.
 - [supabase-aprovacao.sql](./supabase-aprovacao.sql) adiciona solicitações de professor e o papel de administradora.
@@ -27,8 +29,8 @@ O site usa Supabase para autenticação e armazenamento protegido. A configuraç
 
 - `login.html`: entrar, criar conta de aluno ou solicitar acesso de professor.
 - `index.html`: área do aluno.
-- `professor.html`: área de professor aprovado.
-- `admin.html`: fila de solicitações e lista de contas de usuário.
+- `professor.html`: área de professor aprovado, com acompanhamento de alunos e planejador de grade.
+- `admin.html`: fila de solicitações e lista paginada de contas, com filtro por perfil para localizar alunos.
 
 A única forma de conceder os papéis `professor` e `admin` é por rotinas protegidas ou operações administrativas no banco. O navegador não pode promover uma conta. O painel administrativo impede excluir a própria conta e protege outras contas administrativas. Ao excluir um professor, os registros de alunos vinculados também são removidos.
 
