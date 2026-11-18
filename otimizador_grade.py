@@ -246,7 +246,7 @@ def ao_clicar(botao):
                 display(Markdown(f'⚠️ Erro: {texto}'))
 
 botao_gerar.on_click(ao_clicar)
-display(Markdown('## 📘 Otimizador de Plano de Estudos — Matriz 2026'))
+display(Markdown('## 📘 Otimizador de Grade Acadêmica — Matriz 2026'))
 conflitos_matriz = conflitos_de_periodo(disciplinas)
 if conflitos_matriz:
     display(Markdown(
