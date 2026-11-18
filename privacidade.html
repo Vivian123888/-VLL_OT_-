@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Aviso de Privacidade do Otimizador de Grade Acadêmica.">
+<title>Aviso de Privacidade | Otimizador de Grade Acadêmica</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#172d49;background:#f3f6fb}
+*{box-sizing:border-box}body{margin:0}header{background:#142b51;color:#fff;padding:25px max(18px,calc((100vw - 960px)/2))}
+header h1{margin:0;font-size:clamp(24px,3vw,34px)}header p{margin:8px 0 0;color:#d5e2f6}
+main{max-width:960px;margin:24px auto;padding:0 18px 30px}.card{background:#fff;border:1px solid #e0e7f1;border-radius:14px;padding:22px;margin-bottom:16px;box-shadow:0 6px 24px #182e4c0a}
+h2{font-size:20px;margin:0 0 12px;color:#203e6d}p,li{line-height:1.55}p{margin:8px 0}ul{padding-left:24px}.notice{background:#fff4d6;border:1px solid #efcf7a;border-radius:10px;padding:14px;color:#664900;margin:16px 0}
+.muted{color:#59677d;font-size:14px}.tag{color:#52657f;font-size:13px}a{color:#245fc4}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+button{background:#245fc4;color:#fff;border:0;border-radius:9px;padding:11px 15px;font-weight:700;cursor:pointer}
+footer{max-width:960px;margin:0 auto;padding:0 18px 24px;text-align:right;color:#64748b;font-size:13px}
+@media(max-width:560px){.card{padding:17px}header{padding-top:20px;padding-bottom:20px}}
+</style>
+</head>
+<body>
+<header><h1>Aviso de Privacidade</h1><p>Otimizador de Grade Acadêmica · versão inicial · 18/11/2026</p></header>
+<main>
+<div class="notice" role="note"><strong>Informações institucionais pendentes:</strong> o repositório não identifica a organização controladora, a base legal aplicável a cada finalidade, o contato do encarregado/canal de privacidade nem os prazos formais de retenção. A instituição responsável deve preencher e validar esses dados antes de adotar o site como serviço institucional. Este aviso descreve a implementação atual; não declara conformidade jurídica integral.</div>
+
+<section class="card">
+<h2>1. Quem é responsável pelo tratamento</h2>
+<p>O responsável (controlador) é a instituição ou organização que define por que e como os dados serão tratados. Essa entidade e seu canal de contato ainda não estão identificados nesta aplicação. Supabase, GitHub Pages e o serviço de e-mail, quando usado, são fornecedores técnicos; a configuração contratual e os papéis de cada fornecedor devem ser confirmados pela instituição.</p>
+<p class="muted">A administração deve divulgar a identidade e o contato do encarregado ou o canal de privacidade aplicável. Não envie senhas, códigos de acesso ou dados acadêmicos sensíveis em solicitações por e-mail.</p>
+</section>
+
+<section class="card">
+<h2>2. Quais dados a versão atual trata</h2>
+<ul>
+<li><strong>Conta:</strong> e-mail, nome informado no cadastro, identificador de usuário, papel (aluno, professor ou administrador), criação da conta e último acesso. A autenticação e a senha são gerenciadas pelo Supabase; o site não grava a senha em texto puro.</li>
+<li><strong>Acompanhamento de aluno pelo professor:</strong> nome, matrícula e período atual, digitados pelo professor e armazenados no Supabase. As regras atuais restringem a consulta ao professor que registrou esses dados.</li>
+<li><strong>Planejamento do aluno:</strong> a seleção de disciplinas concluídas é guardada no armazenamento local do navegador com a chave “grade-concluidas”. A grade é calculada no navegador e não é salva em uma conta ou enviada ao sistema acadêmico. PDFs e CSVs são exportados pelo navegador para o dispositivo do usuário.</li>
+<li><strong>Solicitação de acesso de professor:</strong> nome, e-mail, situação do pedido e datas de solicitação/análise. Quando o envio está configurado, uma notificação é encaminhada à administração pelo serviço de e-mail conectado.</li>
+</ul>
+<p>O sistema não está integrado ao histórico oficial, ao ERP/SIS ou ao sistema de matrícula. A seleção local de disciplinas não substitui nem atualiza o histórico acadêmico oficial.</p>
+</section>
+
+<section class="card">
+<h2>3. Para que os dados são usados</h2>
+<ul>
+<li>autenticar usuários e aplicar permissões diferentes para alunos, professores e administradores;</li>
+<li>permitir o planejamento local de disciplinas e a geração de relatórios escolhidos pelo usuário;</li>
+<li>registrar e analisar solicitações de acesso de professor;</li>
+<li>permitir que professores consultem os registros de alunos que cadastraram e que a administração gerencie contas.</li>
+</ul>
+<p>A base legal de cada finalidade deve ser definida e documentada pelo controlador, conforme a relação com a instituição e o contexto do tratamento. A tela não usa uma caixa de consentimento como substituto dessa definição.</p>
+</section>
+
+<section class="card">
+<h2>4. Onde os dados ficam e com quem são compartilhados</h2>
+<ul>
+<li><strong>Supabase:</strong> autenticação, perfis, registros de acompanhamento e funções de administração.</li>
+<li><strong>GitHub Pages/GitHub:</strong> hospedagem e publicação dos arquivos estáticos do site.</li>
+<li><strong>Serviço de e-mail:</strong> pode receber dados da solicitação de professor para enviar aviso à administração, quando essa função estiver configurada.</li>
+<li><strong>Navegador do usuário:</strong> seleção de disciplinas concluídas e arquivos PDF/CSV exportados.</li>
+</ul>
+<p>Os dados não são enviados ao SIS pela implementação atual. A instituição deve revisar os contratos, a localização de processamento, as transferências internacionais aplicáveis e as instruções aos fornecedores antes do uso institucional.</p>
+</section>
+
+<section class="card">
+<h2>5. Retenção e exclusão</h2>
+<p>A seleção local permanece no navegador até ser removida pelo usuário ou pela limpeza dos dados do navegador. Arquivos exportados ficam sob controle do usuário no dispositivo. Contas e solicitações permanecem no Supabase até exclusão ou ação administrativa. A exclusão de uma conta de professor remove os registros de alunos associados a ela, conforme a regra atual do banco.</p>
+<p><strong>Ainda não existe um prazo institucional de retenção configurado</strong> para as contas, solicitações e dados de acompanhamento. O controlador deve definir prazos, exceções legais e um processo de descarte antes de ampliar o uso.</p>
+</section>
+
+<section class="card">
+<h2>6. Direitos dos titulares</h2>
+<p>Nos termos da LGPD, o titular pode solicitar, conforme aplicável, confirmação e acesso aos dados, correção, anonimização, bloqueio ou eliminação, portabilidade conforme regulamentação, informações sobre compartilhamento e revogação do consentimento quando essa for a base legal. Esses direitos não são absolutos e podem depender de obrigações legais e do contexto do tratamento.</p>
+<p>Para encaminhar uma solicitação, use o canal oficial de privacidade da instituição responsável. <strong>Esse canal ainda precisa ser informado nesta aplicação</strong>; o site não possui formulário automático de requisição. Não envie sua senha. A ANPD publica <a href="https://www.gov.br/anpd/pt-br/assuntos/titular-de-dados/direito-dos-titulares" target="_blank" rel="noopener noreferrer">orientações sobre os direitos dos titulares</a>.</p>
+</section>
+
+<section class="card">
+<h2>7. Segurança e uso adequado</h2>
+<p>O site usa HTTPS, permissões por papel e políticas de acesso no banco. A chave administrativa não é destinada ao navegador. Ainda assim, o usuário deve proteger o acesso à própria conta e limpar o armazenamento do navegador em dispositivos compartilhados. Os planos são recomendações baseadas na matriz cadastrada e não garantem oferta, vaga ou matrícula.</p>
+</section>
+
+<section class="card">
+<h2>8. Atualizações deste aviso</h2>
+<p>Este texto descreve o código consultado em 18/11/2026. Ele deve ser atualizado quando mudarem os dados coletados, fornecedores, finalidades, integrações ou prazos de retenção. Alterações institucionais devem ser revisadas pelo controlador e pelo encarregado/jurídico responsável.</p>
+<div class="actions"><a href="./login.html">Voltar ao login</a><a href="./index.html">Voltar ao planejador</a></div>
+</section>
+</main>
+<footer>Otimizador de Grade Acadêmica</footer>
+</body>
+</html>
