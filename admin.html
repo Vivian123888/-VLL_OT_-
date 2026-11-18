@@ -8,8 +8,8 @@ button{border:0;background:#245fc4;color:white;padding:10px 14px;border-radius:8
 .reject,.delete{background:#a22d37}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid #e1e8f0;font-size:14px}
 .scroll{overflow-x:auto}.actions{display:flex;gap:8px;flex-wrap:wrap}.nav{display:flex;gap:8px;margin-bottom:18px}.nav button{background:#e7eef9;color:#23446e}.nav button.active{background:#245fc4;color:#fff}
 #msg{min-height:22px}small{color:#637189}.hidden{display:none}
-</style></head>
-<body><header><h1>Administração · Otimizador de Grade Acadêmica</h1><button id="sair">Sair</button></header>
+.header-actions{display:flex;gap:10px;align-items:center;flex:0 0 auto}.manual-cta{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid #d5e1f1;border-radius:8px;background:#fff;color:#1d4278;text-decoration:none;font-weight:700}.manual-cta:hover{background:#edf4ff}.manual-cta:focus-visible{outline:3px solid #9fc1f0;outline-offset:2px}@media(max-width:680px){header{flex-wrap:wrap}header h1{flex:1 1 100%}.header-actions{width:100%;justify-content:flex-end}}</style></head>
+<body><header><h1>Administração · Otimizador de Grade Acadêmica</h1><div class="header-actions"><a class="manual-cta" href="./manual.html">📘 Manual de uso</a><button id="sair">Sair</button></div></header>
 <main><p id="saudacao"></p><nav class="nav" aria-label="Seções administrativas"><button id="navPedidos" class="active" type="button">Solicitações de professores</button><button id="navUsuarios" type="button">Contas de alunos</button></nav>
 <section id="secPedidos" class="card"><h2>Solicitações de professores</h2><p>Analise os pedidos de acesso. A aprovação libera o painel de professores para a conta solicitante.</p><p id="msgPedidos" role="status"></p>
 <div class="scroll"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Solicitado em</th><th>Status</th><th>Ação</th></tr></thead><tbody id="pedidos"></tbody></table></div>
