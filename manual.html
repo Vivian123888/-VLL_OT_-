@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Manual passo a passo para criar uma conta, planejar a grade acadêmica e salvar o resultado.">
+<title>Manual de uso | Otimizador de Grade Acadêmica</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#172d49;background:#f3f6fb}
+*{box-sizing:border-box}body{margin:0;font-size:16px;line-height:1.55}
+header{background:#142b51;color:#fff;padding:28px max(18px,calc((100vw - 980px)/2))}
+header h1{margin:0;font-size:clamp(25px,4vw,36px);line-height:1.2}
+header p{margin:10px 0 0;color:#d5e2f6;max-width:680px}
+main{max-width:980px;margin:24px auto;padding:0 18px 36px}
+nav{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 20px}
+nav a,.button-link{display:inline-block;background:#e8eef8;color:#203e6d;border-radius:9px;padding:10px 14px;font-weight:700;text-decoration:none}
+nav a:hover,.button-link:hover{background:#d7e4f6}
+section{background:#fff;border:1px solid #e0e7f1;border-radius:14px;padding:22px;margin-bottom:18px;box-shadow:0 6px 24px #182e4c0a}
+h2{font-size:23px;line-height:1.25;margin:0 0 12px;color:#203e6d}
+h3{font-size:18px;line-height:1.3;margin:0 0 7px;color:#1c355c}
+p{margin:8px 0}ul,ol{padding-left:24px}li{margin:6px 0}
+.steps{list-style:none;counter-reset:passo;padding:0;margin:16px 0 0}
+.steps>li{counter-increment:passo;position:relative;padding:0 0 20px 56px;margin:0}
+.steps>li::before{content:counter(passo);position:absolute;left:0;top:0;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#245fc4;color:#fff;font-weight:800}
+.steps>li:not(:last-child)::after{content:"";position:absolute;left:18px;top:40px;bottom:0;width:2px;background:#d7e2f2}
+.note{border-left:4px solid #245fc4;background:#edf4ff;padding:13px 15px;border-radius:8px;margin:14px 0}
+.note.warning{border-left-color:#cc8a13;background:#fff7e5}
+.muted{color:#59677d;font-size:15px}
+kbd,.label{font-family:inherit;background:#eef2f8;border:1px solid #d9e1ec;border-radius:5px;padding:1px 6px;color:#273f61;font-size:.95em}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.actions .primary{background:#245fc4;color:#fff}
+a{color:#245fc4}
+footer{max-width:980px;margin:0 auto;padding:0 18px 26px;color:#64748b;font-size:14px;text-align:right}
+@media(max-width:560px){section{padding:17px}header{padding-top:22px;padding-bottom:22px}.steps>li{padding-left:48px}.steps>li::before{width:34px;height:34px}.steps>li:not(:last-child)::after{left:16px;top:36px}}
+</style>
+</head>
+<body>
+<header>
+<h1>Manual de uso</h1>
+<p>Aprenda a criar uma conta, montar seu plano de estudos e salvar a grade em PDF.</p>
+</header>
+<main>
+<nav aria-label="Seções do manual">
+<a href="#aluno">Sou aluno</a>
+<a href="#professor">Sou professor</a>
+<a href="#ajuda">Preciso de ajuda</a>
+</nav>
+
+<section id="aluno">
+<h2>Passo a passo para alunos</h2>
+<ol class="steps">
+<li>
+<h3>Crie sua conta</h3>
+<p>Na tela de acesso, escolha <span class="label">Criar conta de aluno</span>. Informe seu nome completo, um e-mail válido e uma senha com pelo menos 8 caracteres. Se quiser conferir o que digitou, use <span class="label">Mostrar</span>. Clique em <span class="label">Criar conta de aluno</span> para concluir.</p>
+<p>Atualmente, a conta não exige confirmação por e-mail. Se o site voltar para a tela de acesso, entre com o e-mail e a senha que acabou de cadastrar.</p>
+</li>
+<li>
+<h3>Entre no site</h3>
+<p>Na aba <span class="label">Entrar</span>, preencha e-mail e senha e clique em <span class="label">Entrar</span>. Se não lembrar a senha, informe o e-mail e use <span class="label">Esqueci minha senha</span>; siga o link recebido por e-mail para criar uma nova senha.</p>
+</li>
+<li>
+<h3>Configure o tamanho da grade</h3>
+<p>Em <span class="label">Máximo de períodos</span>, informe quantos períodos o planejador pode usar. Em <span class="label">Disciplinas por período</span>, defina o limite por período. Os valores iniciais são 12 períodos e 7 disciplinas; o site aceita de 1 a 24 períodos e de 1 a 9 disciplinas por período.</p>
+<p>A opção <span class="label">Considerar conflitos de horário</span> usa horários estimados da base anterior. Para testar a matriz 2026 sem depender desses horários antigos, deixe-a desmarcada.</p>
+</li>
+<li>
+<h3>Marque as disciplinas já concluídas</h3>
+<p>As disciplinas aparecem agrupadas por período. Use o campo <span class="label">Buscar disciplina</span> para localizar uma matéria e marque somente as que você já concluiu. Se quiser recomeçar, clique em <span class="label">Desmarcar todas</span>.</p>
+<p>O botão <span class="label">Salvar seleção neste navegador</span> guarda suas marcações para a próxima visita neste mesmo navegador e dispositivo. Essa seleção não é sincronizada entre dispositivos e não salva a grade final.</p>
+</li>
+<li>
+<h3>Gere e confira o plano</h3>
+<p>Clique em <span class="label">Gerar plano de estudos</span>. O resultado aparece abaixo, separado por períodos, com as disciplinas e a justificativa dos requisitos considerados.</p>
+<p>Se o resultado for parcial, aumente o limite de períodos ou de disciplinas por período e gere novamente. Confira também se marcou corretamente as matérias concluídas. O plano é uma recomendação baseada na matriz cadastrada; confirme ofertas, horários, vagas e equivalências com a coordenação.</p>
+</li>
+<li>
+<h3>Salve a grade em PDF</h3>
+<p>Com a grade exibida, clique em <span class="label">Salvar grade em PDF</span>. Na janela de impressão do navegador, em <span class="label">Destino</span>, escolha <span class="label">Salvar como PDF</span>, clique em <span class="label">Salvar</span>, selecione a pasta e o nome do arquivo e confirme.</p>
+<p>O arquivo fica salvo no dispositivo escolhido. Para uma versão em planilha, use <span class="label">Baixar CSV</span>.</p>
+</li>
+</ol>
+<div class="note warning"><strong>Importante:</strong> a grade é calculada a partir da matriz cadastrada no site. Ela não consulta seu histórico oficial nem confirma matrícula, oferta ou disponibilidade de vagas.</div>
+</section>
+
+<section id="professor">
+<h2>Passo a passo para professores</h2>
+<ol class="steps">
+<li>
+<h3>Solicite o acesso</h3>
+<p>Na tela de acesso, escolha <span class="label">Solicitar acesso de professor</span>, preencha nome, e-mail e senha e clique em <span class="label">Criar conta e solicitar aprovação</span>. A administração precisa aprovar o pedido. Se a tela pedir, entre novamente com as mesmas credenciais para concluir o envio da solicitação.</p>
+</li>
+<li>
+<h3>Entre após a aprovação</h3>
+<p>Quando o acesso estiver aprovado, use a aba <span class="label">Entrar</span> com o e-mail e a senha cadastrados. Na área do professor, o planejador fica na primeira seção da página; siga os passos de configuração, seleção, geração e salvamento em PDF descritos para alunos.</p>
+</li>
+<li>
+<h3>Cadastre alunos, se precisar</h3>
+<p>No formulário de acompanhamento, informe nome do aluno, matrícula e período atual e clique em <span class="label">Adicionar aluno</span>. Os registros ficam na área do professor que os cadastrou.</p>
+</li>
+</ol>
+</section>
+
+<section id="ajuda">
+<h2>Dúvidas e soluções rápidas</h2>
+<ul>
+<li><strong>Não consigo entrar:</strong> confira o e-mail, use <span class="label">Mostrar</span> para revisar a senha ou solicite a redefinição em <span class="label">Esqueci minha senha</span>.</li>
+<li><strong>O plano ficou parcial:</strong> aumente os limites de períodos ou disciplinas por período e gere novamente.</li>
+<li><strong>Apareceu um erro de conexão:</strong> atualize a página. Se persistir, informe a administração do site.</li>
+<li><strong>Preciso rever a grade:</strong> altere as matérias concluídas ou os limites e clique outra vez em <span class="label">Gerar plano de estudos</span>.</li>
+</ul>
+<div class="actions">
+<a class="button-link primary" href="./login.html">Ir para o acesso</a>
+<a class="button-link" href="./index.html">Abrir o planejador</a>
+<a href="./privacidade.html">Aviso de Privacidade</a>
+</div>
+</section>
+</main>
+<footer>Otimizador de Grade Acadêmica · Desenvolvido por Vivian Lauriano</footer>
+</body>
+</html>
