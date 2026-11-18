@@ -72,3 +72,7 @@ O destinatário `ADMIN_EMAIL` já está salvo como segredo no projeto Supabase c
 Não coloque essas credenciais em arquivos do site ou no GitHub. Sem esses dois segredos, o pedido ainda fica visível no painel administrativo, mas o e-mail automático não é enviado.
 
 As funções validam a sessão Supabase antes de realizar operações protegidas. Apenas uma administradora pode listar/excluir contas ou analisar pedidos de professor.
+
+## Privacidade e LGPD
+
+O [Aviso de Privacidade](./privacidade.html) descreve os dados tratados pela implementação atual, suas finalidades, os fornecedores identificados e os direitos dos titulares. Ele não é uma declaração de conformidade jurídica integral. Antes de uso institucional, a organização responsável deve identificar o controlador, definir e documentar as bases legais e os prazos de retenção, divulgar o canal do encarregado/privacidade e validar contratos, localização e transferências de dados dos fornecedores. O site ainda não oferece formulário automático para solicitações de direitos.
