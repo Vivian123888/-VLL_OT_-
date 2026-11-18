@@ -11,7 +11,7 @@
 <span id="alunosPagina">Página 1</span>
 <button id="alunosProxima" type="button" disabled>Próxima</button>
 </div></section>
-</main><footer class="creditos">Desenvolvido por Vivian Lauriano · <a href="./privacidade.html">Aviso de Privacidade</a></footer><script type="module">
+</main><footer class="creditos">Desenvolvido por Vivian Lauriano · <a href="./privacidade.html">Aviso de Privacidade</a> · <a href="./manual.html">Manual de uso</a></footer><script type="module">
 import {supabase,requireRole,logout} from './auth.js';
 const $=id=>document.getElementById(id);$('sair').onclick=logout;
 const perfil=await requireRole('professor');
