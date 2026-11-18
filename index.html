@@ -20,7 +20,7 @@ label{font-weight:600;font-size:14px}input[type=number],input[type=search]{paddi
 .periodo{border:1px solid #dce5f0;border-radius:12px;overflow:hidden}.periodo h3{margin:0;background:#eaf1fc;padding:13px;font-size:16px}.periodo ul{margin:0;padding:12px 12px 12px 30px}.periodo li{padding:4px 0;font-size:14px}.disciplina-plano{padding:7px 0}.motivo-plano{display:block;margin-top:3px;color:#59677d;font-size:12px;line-height:1.45;font-weight:400}.periodo footer{padding:10px;background:#f7f9fd;color:#4e5f76;font-size:13px}
 #mensagem{margin:12px 0;font-weight:600}.error{color:#a73535}.ok{color:#176b49}
 .warning{color:#855b00;background:#fff4d6;border:1px solid #efcf7a;border-radius:9px;padding:10px;font-weight:600}
-#alertaMatriz,#alertaRequisitos{margin:12px 0}
+#alertaRequisitos{margin:12px 0}
 #print-title{display:none}
 @media print{body{background:white;color:black}header,.no-print,#mensagem{display:none!important}main{max-width:none;margin:0;padding:0}.panel{box-shadow:none;border:0;padding:0;margin:0}#resultado{display:block!important}#print-title{display:block;font-size:22px}.periodos{display:block}.periodo{break-inside:avoid;margin:10px 0}.periodo h3{background:#eee!important;print-color-adjust:exact}button{display:none}}
 body.auth-pending{visibility:hidden} .accountbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0} .accountbar button{background:#e8eef8;color:#203e6d} .creditos{text-align:right;color:#64748b;font-size:13px;padding:0 18px 22px;max-width:1120px;margin:0 auto} body.embed-mode header,body.embed-mode .accountbar,body.embed-mode main>footer,body.embed-mode .creditos{display:none!important} body.embed-mode main{margin:0 auto;padding:0 10px} body.embed-mode .panel{margin-top:10px} @media print{.accountbar,.creditos{display:none!important}}
@@ -28,7 +28,7 @@ body.auth-pending{visibility:hidden} .accountbar{display:flex;gap:12px;align-ite
 </head>
 <body class="auth-pending">
 <header class="no-print"><h1>Otimizador de Grade Acadêmica</h1><p>Engenharia de Produção · Matriz 2026 · Monte seu plano de estudos respeitando os pré-requisitos da matriz.</p></header>
-<main><p id="alertaMatriz" class="warning" role="alert" hidden></p><div class="accountbar no-print"><strong id="alunoNome"></strong><button id="sairConta" type="button">Sair da conta</button></div>
+<main><div class="accountbar no-print"><strong id="alunoNome"></strong><button id="sairConta" type="button">Sair da conta</button></div>
 <section class="panel no-print"><h2>1. Configure sua grade</h2>
 <div class="controls">
 <div class="control"><label for="maxPeriodos">Máximo de períodos</label><input id="maxPeriodos" type="number" min="1" max="24" value="12"></div>
@@ -85,17 +85,6 @@ function renderLista(){
   grupo.append(titulo,itens);lista.append(grupo);
  }
  atualizarContagem();
-}
-function encontrarConflitosMatriz(){
- return disciplinas.flatMap(d=>d.requisitos
-  .filter(r=>mapa.has(r)&&mapa.get(r).periodo>=d.periodo)
-  .map(r=>({disciplina:d.nome,periodo:d.periodo,requisito:r,periodoRequisito:mapa.get(r).periodo})));
-}
-function mostrarAvisoMatriz(){
- const aviso=document.getElementById('alertaMatriz'),conflitos=encontrarConflitosMatriz();
- if(!conflitos.length){aviso.hidden=true;return;}
- aviso.textContent='Possível conflito de requisito na matriz: '+conflitos.map(c=>c.disciplina+' está prevista no '+c.periodo+'º período e depende de '+c.requisito+', também previsto no '+c.periodoRequisito+'º período').join('; ')+'. A regra está cadastrada como pré-requisito estrito, então o planejador separa essas disciplinas em períodos diferentes. A coordenação precisa confirmar se é co-requisito ou corrigir a matriz.';
- aviso.hidden=false;
 }
 function conflitosDaSelecao(){
  const conflitos=[];
@@ -213,7 +202,6 @@ document.getElementById('csv').addEventListener('click',()=>{
  const a=document.createElement('a');a.href=url;a.download='grade_otimizada.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 renderLista();
-mostrarAvisoMatriz();
 </script>
 <script type="module">
 import {currentProfile,logout} from './auth.js';
