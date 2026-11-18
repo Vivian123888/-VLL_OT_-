@@ -1,20 +1,20 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Administração | Otimizador de Grade</title>
+<title>Administração | Otimizador de Grade Acadêmica</title>
 <style>
 body{font-family:system-ui,Arial;background:#f2f6fc;color:#172b49;margin:0}
 header{background:#152c52;color:white;padding:24px max(18px,calc((100vw - 1060px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}
 h1{font-size:25px;margin:0}main{max-width:1060px;margin:28px auto;padding:0 18px}.card{background:white;padding:24px;border-radius:15px;box-shadow:0 6px 24px #142b5114}
-button{border:0;background:#245fc4;color:white;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}button:disabled{opacity:.5}
+button{border:0;background:#245fc4;color:white;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}button:disabled{opacity:.5}select{padding:9px 12px;border:1px solid #c9d4e4;border-radius:8px;font:inherit;color:#172b49;margin:10px 0 16px}
 .reject,.delete{background:#a22d37}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid #e1e8f0;font-size:14px}
 .scroll{overflow-x:auto}.actions{display:flex;gap:8px;flex-wrap:wrap}.nav{display:flex;gap:8px;margin-bottom:18px}.nav button{background:#e7eef9;color:#23446e}.nav button.active{background:#245fc4;color:#fff}
 #msg{min-height:22px}small{color:#637189}.hidden{display:none}
 </style></head>
-<body><header><h1>Administração · Otimizador de Grade</h1><button id="sair">Sair</button></header>
-<main><p id="saudacao"></p><nav class="nav" aria-label="Seções administrativas"><button id="navPedidos" class="active" type="button">Solicitações de professores</button><button id="navUsuarios" type="button">Usuários</button></nav>
+<body><header><h1>Administração · Otimizador de Grade Acadêmica</h1><button id="sair">Sair</button></header>
+<main><p id="saudacao"></p><nav class="nav" aria-label="Seções administrativas"><button id="navPedidos" class="active" type="button">Solicitações de professores</button><button id="navUsuarios" type="button">Contas de alunos</button></nav>
 <section id="secPedidos" class="card"><h2>Solicitações de professores</h2><p>Analise os pedidos de acesso. A aprovação libera o painel de professores para a conta solicitante.</p><p id="msgPedidos" role="status"></p>
 <div class="scroll"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Solicitado em</th><th>Status</th><th>Ação</th></tr></thead><tbody id="pedidos"></tbody></table></div>
 <small>O pedido fica registrado aqui mesmo se o envio de e-mail ainda não estiver configurado.</small></section>
-<section id="secUsuarios" class="card hidden"><h2>Contas de usuário</h2><p>Veja as contas cadastradas. A exclusão remove a conta e os registros de alunos vinculados ao professor.</p><p id="msgUsuarios" role="status"></p>
+<section id="secUsuarios" class="card hidden"><h2>Contas de alunos e usuários</h2><p>Veja as contas criadas, incluindo alunos, professores e administradores. A exclusão remove a conta e os registros de alunos vinculados ao professor.</p><label for="filtroUsuarios">Filtrar o perfil nesta página</label><select id="filtroUsuarios"><option value="todos">Todos os perfis</option><option value="aluno">Alunos</option><option value="professor">Professores</option><option value="admin">Administradores</option><option value="sem perfil">Sem perfil</option></select><small>O filtro se aplica à página carregada. Use a paginação para consultar outras contas.</small><p id="msgUsuarios" role="status"></p>
 <div class="actions" aria-label="Paginação de contas">
 <button id="usuariosAnterior" type="button" disabled>Anterior</button>
 <span id="usuariosPagina">Página 1</span>
@@ -102,11 +102,15 @@ if(perfil){
    usuariosCarregados=true;
    return;
   }
-  $('msgUsuarios').textContent=paginacaoServidor
-   ?users.length+' conta(s) nesta página.'
-   :'Atualize a função admin-usuarios para paginar no servidor. Exibindo página local dos resultados atuais.';
+  const filtro=$('filtroUsuarios').value;
+  const usuariosExibidos=filtro==='todos'?users:users.filter(user=>(user.role||'sem perfil')===filtro);
+  $('msgUsuarios').textContent=!usuariosExibidos.length
+   ?'Nenhuma conta desse perfil nesta página. Avance para consultar outras contas.'
+   :paginacaoServidor
+    ?usuariosExibidos.length+' conta(s) exibida(s) nesta página.'
+    :'Atualize a função admin-usuarios para paginar no servidor. Exibindo página local dos resultados atuais.';
   $('usuariosPagina').textContent='Página '+paginaUsuarios;
-  for(const user of users){
+  for(const user of usuariosExibidos){
    const tr=document.createElement('tr');
    for(const value of [user.nome||'—',user.email||'—',user.role||'sem perfil',user.created_at?new Date(user.created_at).toLocaleString('pt-BR'):'—',user.last_sign_in_at?new Date(user.last_sign_in_at).toLocaleString('pt-BR'):'Nunca']){
     const td=document.createElement('td');td.textContent=value;tr.append(td);
@@ -130,6 +134,7 @@ if(perfil){
   $('usuariosAnterior').disabled=paginaUsuarios<=1;
   $('usuariosProxima').disabled=!usuariosTemProxima;
  }
+ $('filtroUsuarios').addEventListener('change',()=>void carregarUsuarios());
  $('usuariosAnterior').onclick=()=>{if(paginaUsuarios>1){paginaUsuarios--;void carregarUsuarios();}};
  $('usuariosProxima').onclick=()=>{if(usuariosTemProxima){paginaUsuarios++;void carregarUsuarios();}};
  $('navUsuarios').onclick=()=>{abrir('usuarios');if(!usuariosCarregados)void carregarUsuarios();};
