@@ -76,3 +76,7 @@ As funções validam a sessão Supabase antes de realizar operações protegidas
 ## Privacidade e LGPD
 
 O [Aviso de Privacidade](./privacidade.html) descreve os dados tratados pela implementação atual, suas finalidades, os fornecedores identificados e os direitos dos titulares. Ele não é uma declaração de conformidade jurídica integral. Antes de uso institucional, a organização responsável deve identificar o controlador, definir e documentar as bases legais e os prazos de retenção, divulgar o canal do encarregado/privacidade e validar contratos, localização e transferências de dados dos fornecedores. O site ainda não oferece formulário automático para solicitações de direitos.
+
+## Manual de uso
+
+A página [manual.html](./manual.html) explica o cadastro e o login de alunos, a solicitação de acesso de professores, a montagem do plano e o salvamento em PDF ou CSV. O manual também está ligado às telas de acesso, planejamento, professor e administração.
