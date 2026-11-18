@@ -1,15 +1,15 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Acesso | Otimizador de Grade</title>
-<style>body{margin:0;background:#f2f6fc;color:#172d4d;font-family:system-ui,Arial,sans-serif}main{max-width:470px;margin:7vh auto;padding:18px}.card{background:white;border-radius:18px;padding:30px;box-shadow:0 8px 30px #142b5120}h1{font-size:26px;margin:0 0 8px}p{color:#5a6b80}label{display:block;margin:15px 0 5px;font-weight:600}input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #c7d2e4;border-radius:9px;font-size:16px}button{background:#245fc4;color:white;padding:13px;border:0;border-radius:9px;font-weight:700;cursor:pointer;width:100%;margin-top:18px}button:disabled{opacity:.5}.tabs{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}.tabs button{flex:1;min-width:110px;font-size:12px;margin:0;background:#e7eef9;color:#23446e}.tabs button.active{background:#245fc4;color:white}.hidden{display:none}.message{min-height:24px;font-weight:600;color:#a32929}small{color:#64748b}</style></head>
-<body><main><section class="card"><h1>Otimizador de Grade</h1><p>Acesso para alunos e professores</p>
-<div class="tabs"><button id="tabEntrar" class="active" type="button">Entrar</button><button id="tabCadastrar" type="button">Criar conta de aluno</button><button id="tabProfessor" type="button">Solicitar acesso de professor</button></div>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Acesso | Otimizador de Grade Acadêmica</title>
+<style>body{margin:0;background:#f2f6fc;color:#172d4d;font-family:system-ui,Arial,sans-serif}main{max-width:470px;margin:7vh auto;padding:18px}.card{background:white;border-radius:18px;padding:30px;box-shadow:0 8px 30px #142b5120}h1{font-size:26px;margin:0 0 8px}p{color:#5a6b80}label{display:block;margin:15px 0 5px;font-weight:600}input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #c7d2e4;border-radius:9px;font-size:16px}button{background:#245fc4;color:white;padding:13px;border:0;border-radius:9px;font-weight:700;cursor:pointer;width:100%;margin-top:18px}button:disabled{opacity:.5}.tabs{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}.tabs button{flex:1;min-width:110px;font-size:12px;margin:0;background:#e7eef9;color:#23446e}.tabs button.active{background:#245fc4;color:white}.hidden{display:none}.message{min-height:24px;font-weight:600;color:#a32929}small{color:#64748b}.link{display:block;width:auto;background:transparent;color:#245fc4;padding:8px 0;margin:5px 0 0;text-align:left}.creditos{text-align:right;color:#64748b;font-size:13px;padding:18px 4px 0}.secondary{background:#e7eef9;color:#23446e}</style></head>
+<body><main><section class="card"><h1>Otimizador de Grade Acadêmica</h1><p>Acesso para alunos e professores</p>
+<div class="tabs" id="tabs"><button id="tabEntrar" class="active" type="button">Entrar</button><button id="tabCadastrar" type="button">Criar conta de aluno</button><button id="tabProfessor" type="button">Solicitar acesso de professor</button></div>
 <form id="form">
 <div id="nomeBox" class="hidden"><label for="nome">Nome completo</label><input id="nome" autocomplete="name"></div>
 <label for="email">E-mail</label><input id="email" type="email" required autocomplete="email">
 <label for="senha">Senha</label><input id="senha" type="password" required minlength="8" autocomplete="current-password">
 <button id="enviar" type="submit">Entrar</button>
-</form><p class="message" id="msg" role="status"></p>
+</form><button id="esqueciSenha" class="link" type="button">Esqueci minha senha</button><form id="formRedefinir" class="hidden"><p>Defina uma nova senha para sua conta.</p><label for="novaSenha">Nova senha</label><input id="novaSenha" type="password" required minlength="8" autocomplete="new-password"><button id="salvarNovaSenha" type="submit">Salvar nova senha</button><button id="voltarLogin" class="secondary" type="button">Voltar ao login</button></form><p class="message" id="msg" role="status"></p>
 <small>Alunos podem entrar após criar a conta. O acesso de professor depende de aprovação administrativa. A senha é gerenciada pelo Supabase.</small>
-</section></main>
+</section></main><footer class="creditos">Desenvolvido por Vivian Lauriano</footer>
 <script type="module">
 import {supabase,configured,currentProfile} from './auth.js';
 const $=id=>document.getElementById(id);let cadastrar=false;let solicitarProfessor=false;
@@ -22,11 +22,32 @@ function aba(tipo){
  $('nome').required=cadastrar;
  $('enviar').textContent=tipo==='professor'?'Criar conta e solicitar aprovação':cadastrar?'Criar conta de aluno':'Entrar';
  $('senha').autocomplete=cadastrar?'new-password':'current-password';
- $('msg').textContent='';
+ $('msg').textContent='';$('msg').style.color='#a32929';$('form').classList.remove('hidden');$('formRedefinir').classList.add('hidden');$('esqueciSenha').classList.toggle('hidden',cadastrar);
 }
 $('tabEntrar').onclick=()=>aba('entrar');
 $('tabCadastrar').onclick=()=>aba('aluno');
 $('tabProfessor').onclick=()=>aba('professor');
+function mostrarFormularioRedefinicao(){ $('tabs').classList.add('hidden');$('form').classList.add('hidden');$('esqueciSenha').classList.add('hidden');$('formRedefinir').classList.remove('hidden');$('msg').style.color='#176b49';$('msg').textContent='Defina sua nova senha abaixo.'; }
+if(new URLSearchParams(location.hash.slice(1)).get('type')==='recovery')mostrarFormularioRedefinicao();
+supabase?.auth.onAuthStateChange(event=>{if(event==='PASSWORD_RECOVERY')mostrarFormularioRedefinicao();});
+$('esqueciSenha').onclick=async()=>{
+ try{
+  if(!configured)throw new Error('O administrador precisa configurar o Supabase.');
+  const email=$('email').value.trim();if(!email||!$('email').checkValidity())throw new Error('Informe um e-mail válido para receber a recuperação.');
+  $('esqueciSenha').disabled=true;$('msg').style.color='#176b49';$('msg').textContent='Enviando instruções...';
+  const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;
+  $('msg').textContent='Se a conta existir, enviaremos um link para redefinir a senha.';
+ }catch(err){$('msg').style.color='#a32929';$('msg').textContent=err.message;}finally{$('esqueciSenha').disabled=false;}
+};
+$('voltarLogin').onclick=()=>aba('entrar');
+$('formRedefinir').addEventListener('submit',async e=>{
+ e.preventDefault();const botao=$('salvarNovaSenha');botao.disabled=true;
+ try{
+  if($('novaSenha').value.length<8)throw new Error('A senha deve ter pelo menos 8 caracteres.');
+  const {error}=await supabase.auth.updateUser({password:$('novaSenha').value});if(error)throw error;
+  await supabase.auth.signOut();history.replaceState(null,'',location.pathname);$('novaSenha').value='';$('formRedefinir').classList.add('hidden');$('tabs').classList.remove('hidden');$('form').classList.remove('hidden');aba('entrar');$('msg').style.color='#176b49';$('msg').textContent='Senha atualizada. Entre usando sua nova senha.';
+ }catch(err){$('msg').style.color='#a32929';$('msg').textContent=err.message;}finally{botao.disabled=false;}
+});
 async function solicitarAcesso(){
  const {data,error}=await supabase.rpc('solicitar_acesso_professor');
  if(error)throw error;
