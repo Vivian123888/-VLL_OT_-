@@ -17,7 +17,7 @@ label{font-weight:600;font-size:14px}input[type=number],input[type=search]{paddi
 .item{border:1px solid #e3e9f1;padding:10px;border-radius:9px;display:flex;gap:8px;align-items:start;font-size:13px;cursor:pointer}
 .stats{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0}.stat{background:#edf4ff;border-radius:10px;padding:10px 15px;font-weight:700}
 .periodos{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
-.periodo{border:1px solid #dce5f0;border-radius:12px;overflow:hidden}.periodo h3{margin:0;background:#eaf1fc;padding:13px;font-size:16px}.periodo ul{margin:0;padding:12px 12px 12px 30px}.periodo li{padding:4px 0;font-size:14px}.periodo footer{padding:10px;background:#f7f9fd;color:#4e5f76;font-size:13px}
+.periodo{border:1px solid #dce5f0;border-radius:12px;overflow:hidden}.periodo h3{margin:0;background:#eaf1fc;padding:13px;font-size:16px}.periodo ul{margin:0;padding:12px 12px 12px 30px}.periodo li{padding:4px 0;font-size:14px}.disciplina-plano{padding:7px 0}.motivo-plano{display:block;margin-top:3px;color:#59677d;font-size:12px;line-height:1.45;font-weight:400}.periodo footer{padding:10px;background:#f7f9fd;color:#4e5f76;font-size:13px}
 #mensagem{margin:12px 0;font-weight:600}.error{color:#a73535}.ok{color:#176b49}
 .warning{color:#855b00;background:#fff4d6;border:1px solid #efcf7a;border-radius:9px;padding:10px;font-weight:600}
 #alertaMatriz,#alertaRequisitos{margin:12px 0}
@@ -43,7 +43,7 @@ body.auth-pending{visibility:hidden} .accountbar{display:flex;gap:12px;align-ite
 <div class="actions"><button id="gerar">Gerar plano de estudos</button><button id="salvar" class="secondary">Salvar seleção neste navegador</button></div>
 <p id="mensagem" role="status"></p>
 </section>
-<section class="panel" id="resultado" hidden><h2 id="print-title">Meu plano de estudos</h2><h2 class="no-print">3. Sua grade planejada</h2><p id="resumo"></p><div class="stats" id="estatisticas"></div>
+<section class="panel" id="resultado" hidden><h2 id="print-title">Meu plano de estudos</h2><h2 class="no-print">3. Sua grade planejada</h2><p id="resumo"></p><p id="dadosPlano" class="muted"></p><div class="stats" id="estatisticas"></div>
 <div class="actions no-print"><button id="pdf">Salvar grade em PDF</button><button id="csv" class="secondary">Baixar CSV</button></div>
 <p class="muted no-print">O botão PDF abre a impressão do navegador. Em “Destino”, escolha “Salvar como PDF”.</p>
 <div id="periodos" class="periodos"></div>
@@ -92,7 +92,7 @@ function encontrarConflitosMatriz(){
 function mostrarAvisoMatriz(){
  const aviso=document.getElementById('alertaMatriz'),conflitos=encontrarConflitosMatriz();
  if(!conflitos.length){aviso.hidden=true;return;}
- aviso.textContent='Possível conflito de pré-requisito: '+conflitos.map(c=>c.disciplina+' está no período '+c.periodo+' e depende de '+c.requisito+', previsto no período '+c.periodoRequisito).join('; ')+'. Confira se o requisito pode ser cursado no mesmo período ou se a matriz precisa de ajuste.';
+ aviso.textContent='Possível conflito de requisito na matriz: '+conflitos.map(c=>c.disciplina+' está prevista no '+c.periodo+'º período e depende de '+c.requisito+', também previsto no '+c.periodoRequisito+'º período').join('; ')+'. A regra está cadastrada como pré-requisito estrito, então o planejador separa essas disciplinas em períodos diferentes. A coordenação precisa confirmar se é co-requisito ou corrigir a matriz.';
  aviso.hidden=false;
 }
 function conflitosDaSelecao(){
@@ -131,6 +131,16 @@ function validar(){
 function elegivel(d,feitas){
  const creditos=[...feitas].reduce((s,n)=>s+mapa.get(n).creditos,0);
  return d.requisitos.every(r=>{const m=r.match(/^(\d+)\s+créditos(?:\s+acumulados)?$/);return m?creditos>=Number(m[1]):feitas.has(r);});
+}
+function explicarRecomendacao(d,periodosAnteriores){
+  const regras=d.requisitos.map(r=>{
+   const m=r.match(/^\d+\s+créditos(?:\s+acumulados)?$/);
+   if(m)return 'requisito de créditos acumulados atendido conforme as disciplinas marcadas e os períodos anteriores do plano';
+   if(marcadas.has(r))return r+' já informada como concluída';
+   const idx=periodosAnteriores.findIndex(periodo=>periodo.some(item=>item.nome===r));
+   return r+(idx>=0?' planejada no período '+(idx+1):' atendida anteriormente');
+  });
+  return 'Motivo: pendente na matriz 2026; '+(regras.length?'requisitos: '+regras.join('; '):'não há pré-requisitos cadastrados')+'.';
 }
 function planejar(maxP,maxD,considerar){
  validar();
@@ -174,11 +184,12 @@ document.getElementById('gerar').addEventListener('click',()=>{
    const ds=plano[i],card=document.createElement('article');card.className='periodo';
    const h=document.createElement('h3');h.textContent='Período '+(i+1);
    const ul=document.createElement('ul');
-   for(const d of ds){const li=document.createElement('li');li.textContent=d.nome;ul.append(li);}
+   for(const d of ds){const li=document.createElement('li'),nome=document.createElement('strong'),motivo=document.createElement('span');li.className='disciplina-plano';nome.textContent=d.nome;motivo.className='motivo-plano';motivo.textContent=explicarRecomendacao(d,plano.slice(0,i));li.append(nome,motivo);ul.append(li);}
    const footer=document.createElement('footer');footer.textContent=ds.length+' disciplinas';
    card.append(h,ul,footer);area.append(card);
   }
   document.getElementById('resultado').hidden=false;
+  document.getElementById('dadosPlano').textContent='Base: Matriz 2026 cadastrada localmente · Histórico e ofertas não sincronizados com o sistema acadêmico · Horários e vagas não confirmados · Gerado em '+new Intl.DateTimeFormat('pt-BR',{dateStyle:'medium',timeStyle:'short'}).format(new Date())+'.';
   document.getElementById('resumo').textContent=restantes.length?'Plano parcial: faltam '+restantes.length+' disciplinas. Aumente o limite de períodos ou disciplinas.':'Plano completo: todas as disciplinas estão contempladas.';
   const totais=plano.flat();
   document.getElementById('estatisticas').innerHTML='<span class="stat">'+plano.length+' períodos</span><span class="stat">'+totais.length+' disciplinas planejadas</span>';
@@ -194,7 +205,7 @@ document.getElementById('gerar').addEventListener('click',()=>{
 document.getElementById('pdf').addEventListener('click',()=>{if(ultimo)window.print();});
 document.getElementById('csv').addEventListener('click',()=>{
  if(!ultimo)return;
- const linhas=[['Período','Disciplina'],...ultimo.plano.flatMap((ds,i)=>ds.map(d=>[i+1,d.nome]))];
+ const linhas=[['Período','Disciplina','Justificativa'],...ultimo.plano.flatMap((ds,i)=>ds.map(d=>[i+1,d.nome,explicarRecomendacao(d,ultimo.plano.slice(0,i))]))];
  const csv='\ufeff'+linhas.map(row=>row.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(';')).join('\r\n');
  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
  const a=document.createElement('a');a.href=url;a.download='grade_otimizada.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
