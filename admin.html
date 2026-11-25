@@ -25,6 +25,7 @@ button{border:0;background:#245fc4;color:white;padding:10px 14px;border-radius:8
 <footer class="muted" style="max-width:1060px;margin:0 auto;padding:0 18px 24px;text-align:right"><a href="./privacidade.html">Aviso de Privacidade</a> · <a href="./manual.html">Manual de uso</a></footer>
 <script type="module">
 import {supabase,requireRole,logout} from './auth.js';
+import {SUPABASE_ANON_KEY} from './supabase-config.js';
 const $=id=>document.getElementById(id);$('sair').onclick=logout;
 const perfil=await requireRole('admin');
 function abrir(secao){
@@ -34,6 +35,30 @@ function abrir(secao){
 }
 $('navPedidos').onclick=()=>abrir('pedidos');$('navUsuarios').onclick=()=>abrir('usuarios');
 if(perfil){
+ async function invocarAdmin(body){
+  const {data:{session},error:sessionError}=await supabase.auth.getSession();
+  if(sessionError)return {data:null,error:sessionError};
+  if(!session?.access_token){
+   const error=new Error('Sua sessão expirou. Entre novamente.');
+   error.name='AuthSessionMissingError';
+   return {data:null,error};
+  }
+  return supabase.functions.invoke('admin-usuarios',{
+   body,
+   headers:{
+    apikey:SUPABASE_ANON_KEY,
+    Authorization:'Bearer '+session.access_token
+   }
+  });
+ }
+ function erroAdmin(error){
+  const status=error?.context?.status;
+  if(error?.name==='FunctionsFetchError')return 'Falha de conexão com Supabase (rede/CORS).';
+  if(error?.name==='AuthSessionMissingError'||status===401)return 'Sua sessão expirou. Saia e entre novamente.';
+  if(status===403)return 'A conta não foi reconhecida como administradora pelo Supabase.';
+  if(status===404)return 'A função admin-usuarios não foi encontrada no Supabase.';
+  return status?'Supabase retornou HTTP '+status+'.':'Falha na chamada ao Supabase.';
+ }
  $('saudacao').textContent='Bem-vindo(a), '+perfil.nome+'.';
  async function carregarPedidos(){
   const {data,error}=await supabase.rpc('listar_solicitacoes_professor');
@@ -70,12 +95,10 @@ if(perfil){
  async function carregarUsuarios(){
   $('usuariosAnterior').disabled=true;$('usuariosProxima').disabled=true;
   $('msgUsuarios').textContent='Carregando contas...';
-  const {data,error}=await supabase.functions.invoke('admin-usuarios',{
-   body:{action:'list',page:paginaUsuarios,per_page:TAMANHO_PAGINA_USUARIOS}
-  });
+  const {data,error}=await invocarAdmin({action:'list',page:paginaUsuarios,per_page:TAMANHO_PAGINA_USUARIOS});
   if(error){
    usuariosCarregados=false;
-   $('msgUsuarios').textContent='Não foi possível carregar os usuários. Confira a implantação da função administrativa.';
+   $('msgUsuarios').textContent='Não foi possível carregar os usuários. '+erroAdmin(error);
    $('usuariosPagina').textContent='Página '+paginaUsuarios;
    $('usuariosAnterior').disabled=paginaUsuarios<=1;
    return;
@@ -131,8 +154,8 @@ if(perfil){
      const role=roleSelect.value,accessName=role==='professor'?'professor':'aluno';
      if(!confirm('Conceder acesso de '+accessName+' para '+(user.email||user.nome)+'?'))return;
      grantButton.disabled=true;$('msgUsuarios').textContent='Concedendo acesso...';
-     const {data,error}=await supabase.functions.invoke('admin-usuarios',{body:{action:'grant',user_id:user.id,role}});
-     if(error){$('msgUsuarios').textContent='Não foi possível conceder este acesso.';grantButton.disabled=false;return;}
+     const {data,error}=await invocarAdmin({action:'grant',user_id:user.id,role});
+     if(error){$('msgUsuarios').textContent='Não foi possível conceder este acesso. '+erroAdmin(error);grantButton.disabled=false;return;}
      await carregarUsuarios();
      $('msgUsuarios').textContent=data?.warning||'Acesso de '+accessName+' concedido para '+(user.email||user.nome)+'.';
     };
@@ -140,8 +163,8 @@ if(perfil){
     deleteButton.onclick=async()=>{
      if(!confirm('Excluir o acesso e a conta de '+(user.email||user.nome)+'? A ação também remove os registros de alunos vinculados a este professor.'))return;
      deleteButton.disabled=true;$('msgUsuarios').textContent='Excluindo conta...';
-     const {error}=await supabase.functions.invoke('admin-usuarios',{body:{action:'delete',user_id:user.id}});
-     if(error){$('msgUsuarios').textContent='Não foi possível excluir esta conta.';deleteButton.disabled=false;return;}
+     const {error}=await invocarAdmin({action:'delete',user_id:user.id});
+     if(error){$('msgUsuarios').textContent='Não foi possível excluir esta conta. '+erroAdmin(error);deleteButton.disabled=false;return;}
      await carregarUsuarios();
      $('msgUsuarios').textContent='Acesso e conta excluídos.';
     };
