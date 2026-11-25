@@ -4,23 +4,23 @@
 body{font-family:system-ui,Arial;background:#f2f6fc;color:#172b49;margin:0}
 header{background:#152c52;color:white;padding:24px max(18px,calc((100vw - 1060px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}
 h1{font-size:25px;margin:0}main{max-width:1060px;margin:28px auto;padding:0 18px}.card{background:white;padding:24px;border-radius:15px;box-shadow:0 6px 24px #142b5114}
-button{border:0;background:#245fc4;color:white;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}button:disabled{opacity:.5}select{padding:9px 12px;border:1px solid #c9d4e4;border-radius:8px;font:inherit;color:#172b49;margin:10px 0 16px}
+button{border:0;background:#245fc4;color:white;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}button:disabled{opacity:.5}.grant-role{margin:0;min-width:108px;padding:8px 10px}select{padding:9px 12px;border:1px solid #c9d4e4;border-radius:8px;font:inherit;color:#172b49;margin:10px 0 16px}
 .reject,.delete{background:#a22d37}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid #e1e8f0;font-size:14px}
 .scroll{overflow-x:auto}.actions{display:flex;gap:8px;flex-wrap:wrap}.nav{display:flex;gap:8px;margin-bottom:18px}.nav button{background:#e7eef9;color:#23446e}.nav button.active{background:#245fc4;color:#fff}
 #msg{min-height:22px}small{color:#637189}.hidden{display:none}
 .header-actions{display:flex;gap:10px;align-items:center;flex:0 0 auto}.manual-cta{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid #d5e1f1;border-radius:8px;background:#fff;color:#1d4278;text-decoration:none;font-weight:700}.manual-cta:hover{background:#edf4ff}.manual-cta:focus-visible{outline:3px solid #9fc1f0;outline-offset:2px}@media(max-width:680px){header{flex-wrap:wrap}header h1{flex:1 1 100%}.header-actions{width:100%;justify-content:flex-end}}</style></head>
 <body><header><h1>Administração · Otimizador de Grade Acadêmica</h1><div class="header-actions"><a class="manual-cta" href="./manual.html">📘 Manual de uso</a><button id="sair">Sair</button></div></header>
-<main><p id="saudacao"></p><nav class="nav" aria-label="Seções administrativas"><button id="navPedidos" class="active" type="button">Solicitações de professores</button><button id="navUsuarios" type="button">Contas de alunos</button></nav>
+<main><p id="saudacao"></p><nav class="nav" aria-label="Seções administrativas"><button id="navPedidos" class="active" type="button">Solicitações de professores</button><button id="navUsuarios" type="button">Usuários e acessos</button></nav>
 <section id="secPedidos" class="card"><h2>Solicitações de professores</h2><p>Analise os pedidos de acesso. A aprovação libera o painel de professores para a conta solicitante.</p><p id="msgPedidos" role="status"></p>
 <div class="scroll"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Solicitado em</th><th>Status</th><th>Ação</th></tr></thead><tbody id="pedidos"></tbody></table></div>
 <small>O pedido fica registrado aqui mesmo se o envio de e-mail ainda não estiver configurado.</small></section>
-<section id="secUsuarios" class="card hidden"><h2>Contas de alunos e usuários</h2><p>Veja as contas criadas, incluindo alunos, professores e administradores. A exclusão remove a conta e os registros de alunos vinculados ao professor.</p><label for="filtroUsuarios">Filtrar o perfil nesta página</label><select id="filtroUsuarios"><option value="todos">Todos os perfis</option><option value="aluno">Alunos</option><option value="professor">Professores</option><option value="admin">Administradores</option><option value="sem perfil">Sem perfil</option></select><small>O filtro se aplica à página carregada. Use a paginação para consultar outras contas.</small><p id="msgUsuarios" role="status"></p>
+<section id="secUsuarios" class="card hidden"><h2>Todos os usuários com acesso</h2><p>Consulte alunos, professores e administradores. Selecione um perfil e conceda acesso a uma conta existente. A exclusão remove a conta e, para professores, os registros de alunos vinculados.</p><label for="filtroUsuarios">Filtrar o perfil nesta página</label><select id="filtroUsuarios"><option value="todos">Todos os perfis</option><option value="aluno">Alunos</option><option value="professor">Professores</option><option value="admin">Administradores</option><option value="sem perfil">Sem perfil</option></select><small>O filtro se aplica à página carregada. Use a paginação para consultar outras contas.</small><p id="msgUsuarios" role="status"></p>
 <div class="actions" aria-label="Paginação de contas">
 <button id="usuariosAnterior" type="button" disabled>Anterior</button>
 <span id="usuariosPagina">Página 1</span>
 <button id="usuariosProxima" type="button" disabled>Próxima</button>
 </div>
-<div class="scroll"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Criado em</th><th>Último acesso</th><th>Ação</th></tr></thead><tbody id="usuarios"></tbody></table></div>
+<div class="scroll"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Criado em</th><th>Último acesso</th><th>Ações</th></tr></thead><tbody id="usuarios"></tbody></table></div>
 </section></main>
 <footer class="muted" style="max-width:1060px;margin:0 auto;padding:0 18px 24px;text-align:right"><a href="./privacidade.html">Aviso de Privacidade</a> · <a href="./manual.html">Manual de uso</a></footer>
 <script type="module">
@@ -118,15 +118,34 @@ if(perfil){
    }
    const td=document.createElement('td');
    if(user.role!=='admin'){
-    const button=document.createElement('button');button.className='delete';button.textContent='Excluir';
-    button.onclick=async()=>{
-     if(!confirm('Excluir a conta de '+(user.email||user.nome)+'? A ação remove a conta e os registros de alunos vinculados.'))return;
-     button.disabled=true;$('msgUsuarios').textContent='Excluindo conta...';
-     const {error}=await supabase.functions.invoke('admin-usuarios',{body:{action:'delete',user_id:user.id}});
-     if(error){$('msgUsuarios').textContent='Não foi possível excluir esta conta.';button.disabled=false;return;}
+    const actions=document.createElement('div');actions.className='actions';
+    const roleSelect=document.createElement('select');
+    roleSelect.className='grant-role';
+    roleSelect.setAttribute('aria-label','Perfil a conceder para '+(user.email||user.nome||'esta conta'));
+    for(const [label,value] of [['Aluno','aluno'],['Professor','professor']]){
+     const option=document.createElement('option');option.value=value;option.textContent=label;roleSelect.append(option);
+    }
+    roleSelect.value=user.role==='professor'?'professor':'aluno';
+    const grantButton=document.createElement('button');grantButton.textContent='Conceder acesso';
+    grantButton.onclick=async()=>{
+     const role=roleSelect.value,accessName=role==='professor'?'professor':'aluno';
+     if(!confirm('Conceder acesso de '+accessName+' para '+(user.email||user.nome)+'?'))return;
+     grantButton.disabled=true;$('msgUsuarios').textContent='Concedendo acesso...';
+     const {data,error}=await supabase.functions.invoke('admin-usuarios',{body:{action:'grant',user_id:user.id,role}});
+     if(error){$('msgUsuarios').textContent='Não foi possível conceder este acesso.';grantButton.disabled=false;return;}
      await carregarUsuarios();
+     $('msgUsuarios').textContent=data?.warning||'Acesso de '+accessName+' concedido para '+(user.email||user.nome)+'.';
     };
-    td.append(button);
+    const deleteButton=document.createElement('button');deleteButton.className='delete';deleteButton.textContent='Excluir acesso';
+    deleteButton.onclick=async()=>{
+     if(!confirm('Excluir o acesso e a conta de '+(user.email||user.nome)+'? A ação também remove os registros de alunos vinculados a este professor.'))return;
+     deleteButton.disabled=true;$('msgUsuarios').textContent='Excluindo conta...';
+     const {error}=await supabase.functions.invoke('admin-usuarios',{body:{action:'delete',user_id:user.id}});
+     if(error){$('msgUsuarios').textContent='Não foi possível excluir esta conta.';deleteButton.disabled=false;return;}
+     await carregarUsuarios();
+     $('msgUsuarios').textContent='Acesso e conta excluídos.';
+    };
+    actions.append(roleSelect,grantButton,deleteButton);td.append(actions);
    }else td.textContent=user.id===perfil.id?'Administrador atual':'Administrador protegido';
    tr.append(td);$('usuarios').append(tr);
   }
