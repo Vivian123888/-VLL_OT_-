@@ -44,6 +44,28 @@ Deno.serve(async req=>{
     nome:p.nome||x.user_metadata?.nome||'',role:p.role||''
    };}),page,perPage,hasMore:batch.length===perPage});
   }
+  if(body?.action==='grant'){
+   const id=body.user_id,role=body.role;
+   if(typeof id!=='string'||! /^[0-9a-f-]{36}$/i.test(id))return json(400,{error:'ID inválido'});
+   if(!['aluno','professor'].includes(role))return json(400,{error:'Perfil inválido'});
+   if(id===user.id)return json(400,{error:'Não é possível alterar o próprio acesso administrativo'});
+   const {data:targetAuth,error:targetAuthError}=await db.auth.admin.getUserById(id);
+   if(targetAuthError||!targetAuth?.user)return json(404,{error:'Conta não encontrada'});
+   const {data:targetProfile,error:targetProfileError}=await db.from('profiles').select('id,nome,role').eq('id',id).maybeSingle();
+   if(targetProfileError)return json(500,{error:'Não foi possível validar o perfil'});
+   if(targetProfile?.role==='admin')return json(403,{error:'Contas administrativas são protegidas'});
+   const nome=targetProfile?.nome||targetAuth.user.user_metadata?.nome||targetAuth.user.email||'Usuário';
+   const {error:grantError}=await db.from('profiles').upsert({id,nome,role},{onConflict:'id'});
+   if(grantError)return json(500,{error:'Não foi possível conceder este perfil'});
+   let warning=null;
+   if(role==='professor'){
+    const {error:requestError}=await db.from('solicitacoes_professor').update({
+     status:'aprovada',reviewed_at:new Date().toISOString(),reviewed_by:user.id
+    }).eq('user_id',id).eq('status','pendente');
+    if(requestError&&requestError.code!=='42P01')warning='O perfil foi concedido, mas não foi possível atualizar uma solicitação pendente.';
+   }
+   return json(200,{ok:true,role,warning});
+  }
   if(body?.action==='delete'){
    const id=body.user_id;
    if(typeof id!=='string'||! /^[0-9a-f-]{36}$/i.test(id))return json(400,{error:'ID inválido'});
